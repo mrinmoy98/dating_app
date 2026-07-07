@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: "flex-start",
   },
+  
   button: {
     paddingVertical: 10,
     paddingHorizontal: 24,
