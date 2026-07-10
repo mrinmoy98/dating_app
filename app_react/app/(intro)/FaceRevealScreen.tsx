@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
+import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
 
 export default function FaceRevealScreen() {
@@ -124,17 +125,7 @@ export default function FaceRevealScreen() {
         ))}
       </View>
 
-      <TouchableOpacity
-        style={[styles.fab, submitting && { opacity: 0.7 }]}
-        disabled={submitting}
-        onPress={handleFinish}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <MaterialIcons name="arrow-forward" size={24} color="#fff" />
-        )}
-      </TouchableOpacity>
+      <IntroNav onNext={handleFinish} loading={submitting} />
     </View>
   );
 }

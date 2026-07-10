@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
+import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
 
 export default function VideoProfileScreen() {
@@ -33,6 +34,7 @@ export default function VideoProfileScreen() {
       setUploading(true);
       const url = await api.uploadVideo(uri, registrationToken);
       patch({ video_url: url }); // stored so the final register call includes it
+      Alert.alert("Video uploaded ✅", "Your intro video was added successfully.");
     } catch (e: any) {
       Alert.alert("Video upload failed", e?.message ?? "Please try again.");
       setVideoUri(null);
@@ -81,18 +83,7 @@ export default function VideoProfileScreen() {
         </View>
       )}
 
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={goNext}>
-          <Text style={styles.skipText}>Skip for now</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.fab, uploading && { opacity: 0.6 }]}
-          disabled={uploading}
-          onPress={goNext}
-        >
-          <MaterialIcons name="arrow-forward" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <IntroNav onNext={goNext} nextDisabled={uploading} />
     </View>
   );
 }

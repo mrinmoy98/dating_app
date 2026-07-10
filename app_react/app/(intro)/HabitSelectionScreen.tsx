@@ -8,8 +8,8 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { Button } from "react-native-paper";
 import { useRegistration } from "../../context/RegistrationContext";
+import IntroNav from "../components/Shared/IntroNav";
 
 export default function HabitSelectionScreen() {
   const router = useRouter();
@@ -62,6 +62,7 @@ export default function HabitSelectionScreen() {
   };
 
   return (
+    <View style={styles.screen}>
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.progressBar} />
 
@@ -97,25 +98,20 @@ export default function HabitSelectionScreen() {
         </Text>
       </View>
 
-      <Button
-        mode="contained"
-        onPress={handleContinue}
-        style={styles.continueButton}
-        contentStyle={{ paddingVertical: 10 }}
-        labelStyle={{ fontWeight: "bold", fontSize: 16 }}
-      >
-        Continue
-      </Button>
     </ScrollView>
+      <IntroNav onNext={handleContinue} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "#fff" },
   container: {
     padding: 24,
     backgroundColor: "#fff",
     flexGrow: 1,
-    paddingTop:90
+    paddingTop: 90,
+    paddingBottom: 100,
   },
   progressBar: {
     height: 4,

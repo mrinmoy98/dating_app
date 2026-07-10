@@ -1,13 +1,11 @@
 import { Redirect } from 'expo-router'
 import React from 'react'
-import { View } from 'react-native'
+import { useRegistration } from '../context/RegistrationContext'
 
-export default function index() {
-  return (
-    <View>
-      <Redirect href={'/landing'} />
-    </View>
-  )
+export default function Index() {
+  const { authToken } = useRegistration()
+  // Send logged-in users straight into the app, everyone else to the landing.
+  return <Redirect href={authToken ? '/(tabs)/Discover' : '/landing'} />
 }
 
 // import React from "react";

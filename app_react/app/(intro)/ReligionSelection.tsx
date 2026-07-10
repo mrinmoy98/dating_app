@@ -9,6 +9,7 @@ import {
     View,
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
+import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
 
 const religionOptions = [
@@ -62,15 +63,12 @@ export default function ReligionSelection() {
         </Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={() => {
+      <IntroNav
+        onNext={() => {
           patch({ religion: selectedReligion || undefined });
           router.push('/(intro)/LanguageSelection');
         }}
-      >
-        <AntDesign name="arrowright" size={24} color="#fff" />
-      </TouchableOpacity>
+      />
     </SafeAreaView>
   );
 }

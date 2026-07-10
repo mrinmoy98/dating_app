@@ -10,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
+import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
 
 export default function HeightSelector() {
@@ -70,9 +71,8 @@ export default function HeightSelector() {
         </Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={() => {
+      <IntroNav
+        onNext={() => {
           const label = heights[selectedIndex].label;
           const cmMatch = /\((\d+)\s*cm\)/.exec(label);
           patch({
@@ -81,9 +81,7 @@ export default function HeightSelector() {
           });
           router.push('/(intro)/RelationshipStatus');
         }}
-      >
-        <AntDesign name="arrowright" size={24} color="#fff" />
-      </TouchableOpacity>
+      />
     </SafeAreaView>
   );
 }

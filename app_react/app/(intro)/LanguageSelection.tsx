@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Alert } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
+import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
 
 const motherTongues = [
@@ -107,9 +108,8 @@ export default function LanguageSelection() {
           : renderChips(otherLanguages, selectedOtherLanguages, true)}
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={() => {
+      <IntroNav
+        onNext={() => {
           if (!selectedMotherTongue) {
             Alert.alert('Mother tongue required', 'Please select your mother tongue.');
             return;
@@ -120,9 +120,7 @@ export default function LanguageSelection() {
           });
           router.push('/(intro)/HabitSelectionScreen');
         }}
-      >
-        <AntDesign name="arrowright" size={24} color="#fff" />
-      </TouchableOpacity>
+      />
     </SafeAreaView>
   );
 }

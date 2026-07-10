@@ -36,6 +36,7 @@ export interface RegisterPayload {
   longitude?: number;
   height_cm?: number;
   height_label?: string;
+  weight_kg?: number;
   relationship_status?: string;
   religion?: string;
   mother_tongue?: string;
@@ -43,8 +44,59 @@ export interface RegisterPayload {
   smoking?: Habit;
   drinking?: Habit;
   relationship_goal?: string;
+  bio?: string;
+  occupation?: string;
+  education?: string;
+  interests?: string[];
+  diet?: string;
+  last_name?: string;
+  blood_group?: string;
+  complexion?: string;
+  health_info?: string;
+  disability?: string;
+  family_details?: any[];
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
   photos?: string[];
   video_url?: string;
+}
+
+export interface Preferences {
+  interested_in?: string[];
+  age_min?: number;
+  age_max?: number;
+  max_distance_km?: number;
+  preferred_religions?: string[];
+  relationship_goal?: string;
+  min_height_cm?: number;
+  max_height_cm?: number;
+  min_weight_kg?: number;
+  max_weight_kg?: number;
+  marital_status?: string[];
+  income_currency?: string;
+  income_min?: number;
+  income_max?: number;
+}
+
+export interface DiscoverCard {
+  id: string;
+  firstName: string;
+  age: number | null;
+  photoUrl: string | null;
+  photos: string[];
+  location: string | null;
+  distance: number | null; // km
+  occupation: string | null;
+  education: string | null;
+  bio: string | null;
+  interests: string[];
+  gender: string | null;
+  religion: string | null;
+  height_label: string | null;
+  relationship_goal: string | null;
+  verified: boolean;
 }
 
 async function request<T>(
@@ -110,6 +162,49 @@ export const api = {
 
   me(token: string) {
     return request<any>("/api/auth/me", { token });
+  },
+
+  /**
+   * Update the logged-in user's profile. Only the keys you pass are changed
+   * (PATCH). Returns the fresh, full user object.
+   */
+  updateProfile(payload: Partial<RegisterPayload>, token: string) {
+    return request<any>("/api/auth/me", {
+      method: "PATCH",
+      body: payload,
+      token,
+    });
+  },
+
+  /** Update partner-search preferences. Returns the fresh user object. */
+  updatePreferences(prefs: Preferences, token: string) {
+    return request<any>("/api/auth/preferences", {
+      method: "PATCH",
+      body: prefs,
+      token,
+    });
+  },
+
+  /** Get candidate partners matching the current user's preferences. */
+  discover(token: string) {
+    return request<DiscoverCard[]>("/api/auth/discover", { token });
+  },
+
+  /** Log in with email/phone + password (alternative to OTP). */
+  loginPassword(identifier: string, password: string) {
+    return request<{ token: string; user: any }>("/api/auth/login-password", {
+      method: "POST",
+      body: { identifier, password },
+    });
+  },
+
+  /** Set or change the account password (requires auth token). */
+  setPassword(password: string, token: string) {
+    return request<{ success: boolean; message: string }>("/api/auth/set-password", {
+      method: "POST",
+      body: { password },
+      token,
+    });
   },
 
   /**

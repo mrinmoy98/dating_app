@@ -53,6 +53,10 @@ export default function LandingScreen() {
         </TouchableOpacity> */}
         <Button text="Get Started" onPress={()=> router.push('/(auth)/PhoneScreen')} />
 
+        <Text style={styles.loginLink} onPress={() => router.push('/(auth)/PasswordLoginScreen')}>
+          Already have an account? <Text style={styles.loginLinkBold}>Log in</Text>
+        </Text>
+
         <Text style={styles.disclaimer}>
           By signing up, you agree to our{" "}
           <Text style={styles.link} onPress={() => Linking.openURL("#")}>
@@ -126,6 +130,16 @@ const styles = StyleSheet.create({
 //     fontWeight: "600",
 //     fontSize: 16,
 //   },
+  loginLink: {
+    color: "#fff",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 18,
+  },
+  loginLinkBold: {
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
   disclaimer: {
     color: "#ccc",
     fontSize: 12,

@@ -1,7 +1,12 @@
-import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,10 +14,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Alert, Platform } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
+import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
 
 function formatDate(d: Date) {
@@ -27,7 +31,6 @@ function toIso(d: Date) {
   ).padStart(2, "0")}`;
 }
 
-// Default the picker to an 18-years-ago date.
 const EIGHTEEN_YEARS_AGO = new Date(
   new Date().getFullYear() - 18,
   new Date().getMonth(),
@@ -39,15 +42,55 @@ export default function QuickIntroScreen() {
   const { patch } = useRegistration();
 
   const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const [location, setLocation] = useState("");
   const [gender, setGender] = useState<string | undefined>();
 
+  // address
+  const [location, setLocation] = useState(""); // locality / area
+  const [city, setCity] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [country, setCountry] = useState("");
+  const [postal, setPostal] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locating, setLocating] = useState(false);
+
   const onChangeDate = (_event: any, selected?: Date) => {
-    // On Android the picker is a modal that closes on select; on iOS it stays inline.
     if (Platform.OS === "android") setShowPicker(false);
     if (selected) setDob(selected);
+  };
+
+  const useMyLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Allow location access to auto-fill your address.");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({});
+      setLatitude(pos.coords.latitude);
+      setLongitude(pos.coords.longitude);
+      const places = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      const pl = places?.[0];
+      if (pl) {
+        setLocation([pl.name, pl.street, pl.district].filter(Boolean).join(", ") || pl.city || "");
+        setCity(pl.city ?? pl.subregion ?? "");
+        setStateName(pl.region ?? "");
+        setCountry(pl.country ?? "");
+        setPostal(pl.postalCode ?? "");
+      }
+      Alert.alert("Location captured ✅", "Your address was auto-filled. You can edit it.");
+    } catch (e: any) {
+      Alert.alert("Could not get location", e?.message ?? "Please try again.");
+    } finally {
+      setLocating(false);
+    }
   };
 
   const handleNext = () => {
@@ -59,175 +102,141 @@ export default function QuickIntroScreen() {
       Alert.alert("Date of birth required", "Please pick your date of birth.");
       return;
     }
+    if (!gender) {
+      Alert.alert("Gender required", "Please select your gender.");
+      return;
+    }
     patch({
       first_name: firstName.trim(),
+      last_name: lastName.trim() || undefined,
       dob: toIso(dob),
-      location: location.trim() || undefined,
       gender: gender as any,
+      location: location.trim() || undefined,
+      city: city.trim() || undefined,
+      state: stateName.trim() || undefined,
+      country: country.trim() || undefined,
+      postal_code: postal.trim() || undefined,
+      latitude: latitude ?? undefined,
+      longitude: longitude ?? undefined,
     });
     router.push("/(intro)/AgeConfirmationModal");
   };
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView>
-        <ScrollView contentContainerStyle={styles.container}>
-          {/* Progress bar */}
-          <ProgressBar />
-          {/* <View style={styles.progressBar}>
-            <View style={styles.progressIndicator} />
-          </View> */}
-    
-          <Text style={styles.title}>Let's start with a{"\n"}quick intro</Text>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ProgressBar />
+        <Text style={styles.title}>Let's start with a{"\n"}quick intro</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="First Name"
-            placeholderTextColor="#888"
-            value={firstName}
-            onChangeText={setFirstName}
+        {/* Name */}
+        <TextInput style={styles.input} placeholder="First name *" placeholderTextColor="#888" value={firstName} onChangeText={setFirstName} />
+        <TextInput style={styles.input} placeholder="Last name (optional)" placeholderTextColor="#888" value={lastName} onChangeText={setLastName} />
+
+        {/* DOB */}
+        <TouchableOpacity style={styles.input} activeOpacity={0.7} onPress={() => setShowPicker(true)}>
+          <Text style={{ fontSize: 16, color: dob ? "#000" : "#888" }}>
+            {dob ? formatDate(dob) : "Date of birth *  (DD / MM / YYYY)"}
+          </Text>
+        </TouchableOpacity>
+        {showPicker && (
+          <DateTimePicker
+            value={dob ?? EIGHTEEN_YEARS_AGO}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            maximumDate={new Date()}
+            onChange={onChangeDate}
           />
-
-          <TouchableOpacity
-            style={styles.input}
-            activeOpacity={0.7}
-            onPress={() => setShowPicker(true)}
-          >
-            <Text style={{ fontSize: 16, color: dob ? "#000" : "#888" }}>
-              {dob ? formatDate(dob) : "DD  /  MM  /  YYYY"}
-            </Text>
+        )}
+        {Platform.OS === "ios" && showPicker && (
+          <TouchableOpacity onPress={() => setShowPicker(false)}>
+            <Text style={styles.doneText}>Done</Text>
           </TouchableOpacity>
+        )}
 
-          {showPicker && (
-            <DateTimePicker
-              value={dob ?? EIGHTEEN_YEARS_AGO}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              maximumDate={new Date()}
-              onChange={onChangeDate}
-            />
-          )}
-          {Platform.OS === "ios" && showPicker && (
-            <TouchableOpacity onPress={() => setShowPicker(false)}>
-              <Text style={styles.doneText}>Done</Text>
+        {/* Gender */}
+        <Text style={styles.sectionLabel}>Gender *</Text>
+        <View style={styles.genderRow}>
+          {["Male", "Female", "Other"].map((item) => (
+            <TouchableOpacity
+              key={item}
+              style={[styles.genderBtn, gender === item && styles.genderBtnSelected]}
+              onPress={() => setGender(item)}
+            >
+              <Text style={[styles.genderText, gender === item && styles.genderTextSelected]}>{item}</Text>
             </TouchableOpacity>
-          )}
+          ))}
+        </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Location"
-            placeholderTextColor="#888"
-            value={location}
-            onChangeText={setLocation}
-          />
+        {/* Address */}
+        <Text style={styles.sectionLabel}>Address</Text>
+        <TouchableOpacity style={styles.locationBtn} onPress={useMyLocation} disabled={locating} activeOpacity={0.8}>
+          {locating ? <ActivityIndicator color="#8d2561" /> : <Feather name="map-pin" size={18} color="#8d2561" />}
+          <Text style={styles.locationBtnText}>
+            {latitude != null ? "Update current location" : "Use my current location"}
+          </Text>
+        </TouchableOpacity>
+        {latitude != null && <Text style={styles.coordNote}>📍 Coordinates saved — helps find matches near you.</Text>}
 
-          <View style={styles.genderRow}>
-            {["Male", "Female"].map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={[
-                  styles.genderBtn,
-                  gender === item && styles.genderBtnSelected,
-                ]}
-                onPress={() => setGender(item)}
-              >
-                <Text
-                  style={[
-                    styles.genderText,
-                    gender === item && styles.genderTextSelected,
-                  ]}
-                >
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <TextInput style={styles.input} placeholder="Area / locality (optional)" placeholderTextColor="#888" value={location} onChangeText={setLocation} />
+        <View style={styles.row}>
+          <TextInput style={[styles.input, styles.half]} placeholder="City" placeholderTextColor="#888" value={city} onChangeText={setCity} />
+          <TextInput style={[styles.input, styles.half]} placeholder="State" placeholderTextColor="#888" value={stateName} onChangeText={setStateName} />
+        </View>
+        <View style={styles.row}>
+          <TextInput style={[styles.input, styles.half]} placeholder="Country" placeholderTextColor="#888" value={country} onChangeText={setCountry} />
+          <TextInput style={[styles.input, styles.half]} placeholder="PIN / ZIP" placeholderTextColor="#888" keyboardType="number-pad" value={postal} onChangeText={setPostal} />
+        </View>
 
-          <View style={styles.infoBox}>
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color="#555"
-            />
-            <Text style={styles.infoText}>
-              You can choose to hide your first name after verifying yourself.
-            </Text>
-          </View>
+        <View style={styles.infoBox}>
+          <Ionicons name="information-circle-outline" size={20} color="#555" />
+          <Text style={styles.infoText}>
+            Fields marked * are required. Address helps show you people nearby — you can edit it anytime.
+          </Text>
+        </View>
 
-          <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-            <Ionicons name="arrow-forward" size={28} color="#fff" />
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    </SafeAreaProvider>
+        <View style={{ height: 90 }} />
+      </ScrollView>
+
+      <IntroNav onNext={handleNext} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-    backgroundColor: "#fff",
-    flexGrow: 1,
-    justifyContent: "flex-start",
-    height:'100%'
-  },
-//   progressBar: {
-//     height: 4,
-//     backgroundColor: "#eee",
-//     width: "100%",
-//     borderRadius: 2,
-//     marginBottom: 16,
-//   },
-//   progressIndicator: {
-//     width: "10%",
-//     backgroundColor: "#000",
-//     height: "100%",
-//     borderRadius: 2,
-//   },
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#111",
-    marginBottom: 24,
-  },
+  safe: { flex: 1, backgroundColor: "#fff" },
+  container: { padding: 24, flexGrow: 1 },
+  title: { fontSize: 26, fontWeight: "700", color: "#111", marginBottom: 24 },
   input: {
     borderBottomWidth: 1,
     borderColor: "#ccc",
     fontSize: 16,
     paddingVertical: 12,
-    marginBottom: 24,
+    marginBottom: 20,
     color: "#000",
   },
-  doneText: {
-    color: "#8d2561",
-    fontWeight: "700",
-    fontSize: 16,
-    textAlign: "right",
-    marginBottom: 16,
-  },
-  genderRow: {
+  row: { flexDirection: "row", gap: 14 },
+  half: { flex: 1 },
+  sectionLabel: { fontSize: 14, fontWeight: "700", color: "#333", marginBottom: 12, marginTop: 4 },
+  doneText: { color: "#8d2561", fontWeight: "700", fontSize: 16, textAlign: "right", marginBottom: 16 },
+  genderRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
+  genderBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20, borderWidth: 1, borderColor: "#ccc" },
+  genderBtnSelected: { backgroundColor: "#8d2561", borderColor: "#8d2561" },
+  genderText: { color: "#000", fontWeight: "500" },
+  genderTextSelected: { color: "#fff" },
+  locationBtn: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
-  },
-  genderBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  genderBtnSelected: {
-    backgroundColor: "#8d2561",
     borderColor: "#8d2561",
+    borderRadius: 10,
+    paddingVertical: 12,
+    backgroundColor: "#fbe9f3",
+    marginBottom: 10,
   },
-  genderText: {
-    color: "#000",
-    fontWeight: "500",
-  },
-  genderTextSelected: {
-    color: "#fff",
-  },
+  locationBtnText: { color: "#8d2561", fontWeight: "700", fontSize: 14 },
+  coordNote: { fontSize: 12, color: "#8d2561", marginBottom: 14 },
   infoBox: {
     flexDirection: "row",
     backgroundColor: "#f5f5f5",
@@ -235,13 +244,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     gap: 10,
-    marginTop: 12,
+    marginTop: 8,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#333",
-  },
+  infoText: { flex: 1, fontSize: 13, color: "#333" },
   nextBtn: {
     backgroundColor: "#8d2561",
     borderRadius: 30,

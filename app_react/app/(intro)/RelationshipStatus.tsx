@@ -9,6 +9,7 @@ import {
     View
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
+import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
 
 const statusOptions = [
@@ -66,15 +67,12 @@ export default function RelationshipStatus() {
         </Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.nextButton}
-        onPress={() => {
+      <IntroNav
+        onNext={() => {
           patch({ relationship_status: selectedStatus || undefined });
           router.push('/(intro)/ReligionSelection');
         }}
-      >
-        <AntDesign name="arrowright" size={24} color="#fff" />
-      </TouchableOpacity>
+      />
     </SafeAreaView>
   );
 }

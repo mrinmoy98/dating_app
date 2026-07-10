@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -13,7 +14,13 @@ import { randomInt } from 'crypto';
 import { Model } from 'mongoose';
 import { Otp } from '../../entity/otp.entity';
 import { User } from '../../entity/user.entity';
-import { RegisterDto } from './dto/auth.dto';
+import {
+  LoginPasswordDto,
+  RegisterDto,
+  SetPasswordDto,
+  UpdatePreferencesDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 
 /** Shape of a registration JWT as the flow progresses. */
 interface RegPayload {
@@ -51,6 +58,11 @@ export class ApiAuthService {
 
     const user = await this.userModel.findOne({ phone });
 
+    // A banned account can never log in or re-register on the same number.
+    if (user && user.status === 'banned') {
+      throw new ForbiddenException('This account has been suspended');
+    }
+
     // Returning user with a finished profile → log them straight in.
     if (user && user.is_profile_complete) {
       user.phone_verified = true;
@@ -80,6 +92,8 @@ export class ApiAuthService {
   async sendEmailOtp(token: RegPayload, rawEmail: string) {
     this.assertRegToken(token);
     const email = this.normalizeEmail(rawEmail);
+    // Reject early if this email already belongs to another account.
+    await this.assertEmailAvailable(email, token.phone);
     const code = await this.issueOtp(email, 'email');
     await this.sendEmail(email, code);
     return this.otpResponse(email, code, `Verification code sent to ${email}`);
@@ -88,6 +102,8 @@ export class ApiAuthService {
   async verifyEmailOtp(token: RegPayload, rawEmail: string, code: string) {
     this.assertRegToken(token);
     const email = this.normalizeEmail(rawEmail);
+    // Re-check in case someone else registered this email while the OTP was in flight.
+    await this.assertEmailAvailable(email, token.phone);
     await this.checkOtp(email, code);
 
     // Upgrade the registration token so it now carries the verified email.
@@ -108,19 +124,35 @@ export class ApiAuthService {
     this.assertRegToken(token);
     const phone = this.normalizePhone(token.phone as string);
 
+    // Final guard: the verified email must not belong to a different account.
+    if (token.email) {
+      await this.assertEmailAvailable(this.normalizeEmail(token.email), phone);
+    }
+
     const update = {
       phone,
       phone_verified: true,
       email: token.email ?? null,
       email_verified: !!token.email_verified,
       first_name: dto.first_name?.trim(),
+      last_name: dto.last_name?.trim() ?? null,
       dob: this.parseDate(dto.dob),
       gender: dto.gender ?? null,
       location: dto.location ?? null,
       latitude: dto.latitude ?? null,
       longitude: dto.longitude ?? null,
+      address: {
+        locality: dto.location ?? '',
+        city: dto.city ?? '',
+        state: dto.state ?? '',
+        country: dto.country ?? '',
+        postal_code: dto.postal_code ?? '',
+        latitude: dto.latitude ?? null,
+        longitude: dto.longitude ?? null,
+      },
       height_cm: dto.height_cm ?? null,
       height_label: dto.height_label ?? null,
+      weight_kg: dto.weight_kg ?? null,
       relationship_status: dto.relationship_status ?? null,
       religion: dto.religion ?? null,
       mother_tongue: dto.mother_tongue ?? null,
@@ -138,11 +170,21 @@ export class ApiAuthService {
       last_active_at: new Date(),
     };
 
-    const user = await this.userModel.findOneAndUpdate(
-      { phone },
-      { $set: update },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    );
+    let user: User;
+    try {
+      user = await this.userModel.findOneAndUpdate(
+        { phone },
+        { $set: update },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+    } catch (err: any) {
+      // Duplicate-key from the unique phone/email index → someone got there first.
+      if (err?.code === 11000) {
+        const field = err?.keyPattern?.email ? 'email address' : 'phone number';
+        throw new ConflictException(`This ${field} is already registered`);
+      }
+      throw err;
+    }
 
     return {
       token: this.issueAuthToken(user),
@@ -152,9 +194,228 @@ export class ApiAuthService {
 
   /** Current authenticated user (for the dynamic profile page). */
   async me(userId: string) {
-    const user = await this.userModel.findById(userId);
+    const user = await this.userModel.findById(userId).select('+password');
     if (!user) throw new UnauthorizedException('User not found');
     return this.toPublicUser(user);
+  }
+
+  // ===========================================================================
+  // Update profile — logged-in user edits their own account (PATCH semantics)
+  // ===========================================================================
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new UnauthorizedException('User not found');
+    if (user.status === 'banned') {
+      throw new ForbiddenException('This account has been suspended');
+    }
+
+    // Build a $set from ONLY the fields the client actually sent, so untouched
+    // fields keep their current value. `undefined` = "not provided" (skip);
+    // an explicit `null`/'' is honoured so a user can clear a field.
+    const set: Record<string, unknown> = {};
+    const assign = <K extends keyof UpdateProfileDto>(key: K) => {
+      if (dto[key] !== undefined) set[key as string] = dto[key];
+    };
+
+    assign('gender');
+    assign('location');
+    assign('latitude');
+    assign('longitude');
+    assign('height_cm');
+    assign('height_label');
+    assign('weight_kg');
+    assign('relationship_status');
+    assign('religion');
+    assign('mother_tongue');
+    assign('other_languages');
+    assign('smoking');
+    assign('drinking');
+    assign('relationship_goal');
+    assign('bio');
+    assign('occupation');
+    assign('education');
+    assign('interests');
+    assign('diet');
+    assign('last_name');
+    assign('blood_group');
+    assign('complexion');
+    assign('health_info');
+    assign('disability');
+    assign('family_details');
+    assign('video_url');
+
+    // Structured address (dot-path updates so we don't wipe the whole object).
+    if (dto.city !== undefined) set['address.city'] = dto.city;
+    if (dto.state !== undefined) set['address.state'] = dto.state;
+    if (dto.country !== undefined) set['address.country'] = dto.country;
+    if (dto.postal_code !== undefined) set['address.postal_code'] = dto.postal_code;
+    if (dto.latitude !== undefined) set['address.latitude'] = dto.latitude;
+    if (dto.longitude !== undefined) set['address.longitude'] = dto.longitude;
+
+    if (dto.first_name !== undefined) set.first_name = dto.first_name.trim();
+    if (dto.dob !== undefined) set.dob = this.parseDate(dto.dob);
+    if (dto.photos !== undefined) {
+      set.photos = dto.photos.map((url, i) => ({
+        url,
+        position: i,
+        is_primary: i === 0,
+      }));
+    }
+
+    set.last_active_at = new Date();
+
+    const updated = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: set },
+      { new: true, runValidators: true },
+    );
+    return this.toPublicUser(updated as User);
+  }
+
+  // ===========================================================================
+  // Partner preferences
+  // ===========================================================================
+  async updatePreferences(userId: string, dto: UpdatePreferencesDto) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const ageMin = dto.age_min ?? user.preferences?.age_min ?? 18;
+    const ageMax = dto.age_max ?? user.preferences?.age_max ?? 60;
+    if (ageMin > ageMax) {
+      throw new BadRequestException('Minimum age cannot be greater than maximum age');
+    }
+
+    const set: Record<string, unknown> = {};
+    (
+      [
+        'interested_in',
+        'age_min',
+        'age_max',
+        'max_distance_km',
+        'preferred_religions',
+        'relationship_goal',
+        'min_height_cm',
+        'max_height_cm',
+        'min_weight_kg',
+        'max_weight_kg',
+        'marital_status',
+        'income_currency',
+        'income_min',
+        'income_max',
+      ] as const
+    ).forEach((k) => {
+      if (dto[k] !== undefined) set[`preferences.${k}`] = dto[k];
+    });
+
+    const updated = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: set },
+      { new: true, runValidators: true },
+    );
+    return this.toPublicUser(updated as User);
+  }
+
+  // ===========================================================================
+  // Discover — candidates matching the current user's preferences
+  // ===========================================================================
+  async discover(userId: string) {
+    const me = await this.userModel.findById(userId);
+    if (!me) throw new UnauthorizedException('User not found');
+
+    const p = me.preferences ?? ({} as any);
+    const ageMin = p.age_min ?? 18;
+    const ageMax = p.age_max ?? 60;
+    const now = new Date();
+    // Someone aged `ageMin` was born at most `ageMin` years ago (youngest allowed).
+    const maxDob = new Date(now.getFullYear() - ageMin, now.getMonth(), now.getDate());
+    // Someone aged `ageMax` was born within the last `ageMax+1` years (oldest allowed).
+    const minDob = new Date(now.getFullYear() - ageMax - 1, now.getMonth(), now.getDate());
+
+    const query: any = {
+      _id: { $ne: me._id },
+      status: 'active',
+      is_profile_complete: true,
+      dob: { $gte: minDob, $lte: maxDob },
+    };
+    // Which genders to show. If the user hasn't chosen, default to the opposite
+    // of their own gender (Male → Female, Female → Male).
+    let interestedIn: string[] = p.interested_in ?? [];
+    if (!interestedIn.length) {
+      if (me.gender === 'Male') interestedIn = ['Female'];
+      else if (me.gender === 'Female') interestedIn = ['Male'];
+    }
+    if (interestedIn.length) query.gender = { $in: interestedIn };
+    if (p.preferred_religions?.length) query.religion = { $in: p.preferred_religions };
+    if (p.relationship_goal) query.relationship_goal = p.relationship_goal;
+    if (p.marital_status?.length) query.relationship_status = { $in: p.marital_status };
+
+    if (p.min_height_cm != null || p.max_height_cm != null) {
+      query.height_cm = {};
+      if (p.min_height_cm != null) query.height_cm.$gte = p.min_height_cm;
+      if (p.max_height_cm != null) query.height_cm.$lte = p.max_height_cm;
+    }
+    if (p.min_weight_kg != null || p.max_weight_kg != null) {
+      query.weight_kg = {};
+      if (p.min_weight_kg != null) query.weight_kg.$gte = p.min_weight_kg;
+      if (p.max_weight_kg != null) query.weight_kg.$lte = p.max_weight_kg;
+    }
+
+    const candidates = await this.userModel
+      .find(query)
+      .sort({ last_active_at: -1 })
+      .limit(100);
+
+    const hasGeo = me.latitude != null && me.longitude != null;
+    const maxDist = p.max_distance_km ?? null;
+
+    return candidates
+      .map((c) => {
+        const d =
+          hasGeo && c.latitude != null && c.longitude != null
+            ? this.distanceKm(me.latitude as number, me.longitude as number, c.latitude, c.longitude)
+            : null;
+        return { c, d };
+      })
+      // Drop anyone beyond the distance limit (only when we can measure it).
+      .filter(({ d }) => !(hasGeo && maxDist != null && d != null && d > maxDist))
+      .sort((a, b) => (a.d ?? Number.MAX_SAFE_INTEGER) - (b.d ?? Number.MAX_SAFE_INTEGER))
+      .map(({ c, d }) => this.toCard(c, d));
+  }
+
+  // ===========================================================================
+  // Password (optional login method alongside OTP)
+  // ===========================================================================
+  async setPassword(userId: string, dto: SetPasswordDto) {
+    const hash = await bcrypt.hash(dto.password, 10);
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: { password: hash } },
+      { new: true },
+    );
+    if (!user) throw new UnauthorizedException('User not found');
+    return { success: true, message: 'Password saved. You can now log in with it.' };
+  }
+
+  async loginWithPassword(dto: LoginPasswordDto) {
+    const id = (dto.identifier || '').trim();
+    const query = id.includes('@')
+      ? { email: id.toLowerCase() }
+      : { phone: this.normalizePhone(id) };
+
+    // password has select:false, so ask for it explicitly.
+    const user = await this.userModel.findOne(query).select('+password');
+    if (!user || !user.password) {
+      throw new UnauthorizedException('Invalid email/phone or password');
+    }
+    if (user.status === 'banned') {
+      throw new ForbiddenException('This account has been suspended');
+    }
+    const ok = await bcrypt.compare(dto.password, user.password);
+    if (!ok) throw new UnauthorizedException('Invalid email/phone or password');
+
+    user.last_active_at = new Date();
+    await user.save();
+    return { token: this.issueAuthToken(user), user: this.toPublicUser(user) };
   }
 
   // ===========================================================================
@@ -248,6 +509,23 @@ export class ApiAuthService {
     }
   }
 
+  /**
+   * Ensure `email` is not already tied to a *different* account. Re-running the
+   * flow on the same phone number is allowed (it's the same person), so we only
+   * conflict when the existing owner's phone differs from the one registering.
+   */
+  private async assertEmailAvailable(email: string, phone?: string) {
+    const existing = await this.userModel.findOne({ email }).lean();
+    if (!existing) return;
+    const ownerPhone = existing.phone;
+    const claimantPhone = phone ? this.normalizePhone(phone) : null;
+    if (ownerPhone !== claimantPhone) {
+      throw new ConflictException(
+        'This email is already registered with another account',
+      );
+    }
+  }
+
   private toPublicUser(user: User) {
     return {
       id: user._id,
@@ -260,6 +538,7 @@ export class ApiAuthService {
       location: user.location,
       height_cm: user.height_cm,
       height_label: user.height_label,
+      weight_kg: user.weight_kg,
       relationship_status: user.relationship_status,
       religion: user.religion,
       mother_tongue: user.mother_tongue,
@@ -267,11 +546,72 @@ export class ApiAuthService {
       smoking: user.smoking,
       drinking: user.drinking,
       relationship_goal: user.relationship_goal,
+      bio: user.bio,
+      occupation: user.occupation,
+      education: user.education,
+      interests: user.interests,
+      diet: user.diet,
+      last_name: user.last_name,
+      blood_group: user.blood_group,
+      complexion: user.complexion,
+      health_info: user.health_info,
+      disability: user.disability,
+      family_details: user.family_details,
+      address: user.address,
+      has_password: !!user.password,
       photos: user.photos,
       video_url: user.video_url,
+      preferences: user.preferences,
       status: user.status,
       is_profile_complete: user.is_profile_complete,
     };
+  }
+
+  /** Shape a candidate for the Discover swipe card (matches the mobile card). */
+  private toCard(user: User, distanceKm: number | null) {
+    const primary = user.photos?.find((ph) => ph.is_primary) ?? user.photos?.[0];
+    return {
+      id: String(user._id),
+      firstName: user.first_name,
+      lastName: user.last_name,
+      age: this.calcAge(user.dob),
+      photoUrl: primary?.url ?? null,
+      photos: (user.photos ?? []).map((ph) => ph.url),
+      location: user.location,
+      distance: distanceKm != null ? Math.round(distanceKm) : null, // in km
+      occupation: user.occupation,
+      education: user.education,
+      bio: user.bio,
+      interests: user.interests ?? [],
+      gender: user.gender,
+      religion: user.religion,
+      height_label: user.height_label,
+      relationship_goal: user.relationship_goal,
+      verified: !!(user.phone_verified && user.email_verified),
+    };
+  }
+
+  private calcAge(dob: Date | null): number | null {
+    if (!dob) return null;
+    const d = new Date(dob);
+    if (isNaN(d.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age;
+  }
+
+  /** Great-circle distance between two lat/lng points, in kilometres. */
+  private distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   // ===========================================================================

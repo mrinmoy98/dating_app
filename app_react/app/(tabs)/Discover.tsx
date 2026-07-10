@@ -1,9 +1,12 @@
 import Colors from "@/data/Colors";
 import { mockProfiles } from "@/utils/mockData";
 import { AntDesign, Feather } from "@expo/vector-icons";
-import React, { useRef, useState } from "react";
-import { Animated, Dimensions, PanResponder, StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Dimensions, PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRegistration } from "../../context/RegistrationContext";
+import { api } from "../../lib/api";
 import ProfileCard from "../components/ProfileCard";
 import ProfileDetails from "../components/ProfileDetails";
 import ActionButton from "../components/Shared/ActionButton";
@@ -12,8 +15,30 @@ import Typography from "../components/Shared/Typography";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
 export default function Discover() {
+  const router = useRouter();
+  const { authToken } = useRegistration();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  // Real candidates from the backend when logged in; mock data for dev preview.
+  const [profiles, setProfiles] = useState<any[]>(mockProfiles);
+  const [loading, setLoading] = useState(false);
+
+  const loadDiscover = React.useCallback(() => {
+    if (!authToken) return;
+    setLoading(true);
+    api
+      .discover(authToken)
+      .then((cards) => {
+        setProfiles(cards);
+        setCurrentIndex(0);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [authToken]);
+
+  useEffect(() => {
+    loadDiscover();
+  }, [loadDiscover]);
 
   const position = useRef(new Animated.ValueXY()).current;
 
@@ -99,7 +124,16 @@ export default function Discover() {
   };
 
   const renderProfiles = () => {
-    if (currentIndex >= mockProfiles.length) {
+    if (loading) {
+      return (
+        <View style={styles.endOfProfiles}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Typography style={styles.tryAgainText}>Finding people for you…</Typography>
+        </View>
+      );
+    }
+
+    if (currentIndex >= profiles.length) {
       return (
         <View style={styles.endOfProfiles}>
           <Typography variant="title" style={styles.endOfProfilesText}>
@@ -108,17 +142,21 @@ export default function Discover() {
           <Typography style={styles.tryAgainText}>
             Check back soon or adjust your preferences
           </Typography>
+          <Pressable style={styles.prefBtn} onPress={() => router.push('/(profile)/Preferences')}>
+            <Feather name="sliders" size={16} color="#fff" />
+            <Typography style={styles.prefBtnText}>Adjust Preferences</Typography>
+          </Pressable>
         </View>
       );
     }
 
-    return mockProfiles
+    return profiles
       .slice(currentIndex, currentIndex + 2)
       .reverse()
       .map((profile, index) => {
         const isCurrentProfile =
           index ===
-          mockProfiles.slice(currentIndex, currentIndex + 2).length - 1;
+          profiles.slice(currentIndex, currentIndex + 2).length - 1;
         const animatedCardStyle = isCurrentProfile
           ? {
               transform: [
@@ -278,5 +316,20 @@ const styles = StyleSheet.create({
   tryAgainText: {
     color: Colors.GRAY,
     textAlign: "center",
+    marginTop: 8,
+  },
+  prefBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginTop: 20,
+  },
+  prefBtnText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });

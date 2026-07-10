@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -7,9 +7,13 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { ApiAuthService } from './auth.service';
 import {
+  LoginPasswordDto,
   RegisterDto,
   SendEmailOtpDto,
   SendOtpDto,
+  SetPasswordDto,
+  UpdatePreferencesDto,
+  UpdateProfileDto,
   VerifyEmailOtpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
@@ -67,11 +71,52 @@ export class ApiAuthController {
     return this.authService.register(user, dto);
   }
 
+  @Public()
+  @Post('login-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Log in with email/phone + password' })
+  loginPassword(@Body() dto: LoginPasswordDto) {
+    return this.authService.loginWithPassword(dto);
+  }
+
+  @Post('set-password')
+  @Roles('user')
+  @HttpCode(200)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Set or change the account password' })
+  setPassword(@CurrentUser() user: { sub: string }, @Body() dto: SetPasswordDto) {
+    return this.authService.setPassword(user.sub, dto);
+  }
+
   @Get('me')
   @Roles('user')
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Get the current logged-in user' })
   me(@CurrentUser() user: { sub: string }) {
     return this.authService.me(user.sub);
+  }
+
+  @Patch('me')
+  @Roles('user')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Update the current user profile (only sent fields change)' })
+  updateProfile(@CurrentUser() user: { sub: string }, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(user.sub, dto);
+  }
+
+  @Patch('preferences')
+  @Roles('user')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Update partner-search preferences' })
+  updatePreferences(@CurrentUser() user: { sub: string }, @Body() dto: UpdatePreferencesDto) {
+    return this.authService.updatePreferences(user.sub, dto);
+  }
+
+  @Get('discover')
+  @Roles('user')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Get candidate partners matching your preferences' })
+  discover(@CurrentUser() user: { sub: string }) {
+    return this.authService.discover(user.sub);
   }
 }

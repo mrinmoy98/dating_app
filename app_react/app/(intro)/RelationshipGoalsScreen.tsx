@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
+import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
 
 const options = [
@@ -57,15 +58,12 @@ export default function RelationshipGoalsScreen() {
         })}
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {
+      <IntroNav
+        onNext={() => {
           patch({ relationship_goal: selected || undefined });
           router.push('/(intro)/VideoProfileScreen');
         }}
-      >
-        <MaterialIcons name="arrow-forward" size={24} color="white" />
-      </TouchableOpacity>
+      />
     </View>
   );
 }
