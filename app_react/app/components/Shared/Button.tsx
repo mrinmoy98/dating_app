@@ -1,13 +1,20 @@
 import React from "react";
-import { Text, TouchableOpacity } from "react-native";
+// import { Text, TouchableOpacity } from "react-native";
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ViewStyle,
+} from "react-native";
 
 type ButtonProps = {
   text: string;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: "primary" | "secondary" | "outline";
   onPress: () => void;
+  style?: ViewStyle;
 };
 
-export default function Button({ text,variant = 'primary', onPress }: ButtonProps) {
+/* export default function Button({ text,variant = 'primary', onPress }: ButtonProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -32,4 +39,40 @@ export default function Button({ text,variant = 'primary', onPress }: ButtonProp
       </Text>
     </TouchableOpacity>
   );
+} */
+export default function Button({
+  text,
+  variant = "primary",
+  onPress,
+  style,
+}: ButtonProps) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={[styles.button, style]}
+    >
+      <Text numberOfLines={1} style={styles.text}>
+        {text}
+      </Text>
+    </TouchableOpacity>
+  );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    width: "100%",
+    backgroundColor: "#b8007e",
+    paddingVertical: 15,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  text: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+});

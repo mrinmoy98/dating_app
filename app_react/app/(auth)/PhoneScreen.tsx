@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from "react-native";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
 import Button from "../components/Shared/Button";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PhoneScreen() {
   const router = useRouter();
@@ -35,65 +36,89 @@ export default function PhoneScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Please share your number to get started</Text>
-      <Text style={styles.subtext}>
-        It helps us verify and make Aisle a safe place to foster genuine
-        connections.
-      </Text>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "height" : "padding"}
+        >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.container}>
+              <Text style={styles.header}>Please share your number to get started</Text>
+              <Text style={styles.subtext}>
+                It helps us verify and make Aisle a safe place to foster genuine
+                connections.
+              </Text>
 
-      <View style={styles.inputContainer}>
-        <View style={styles.countryCode}>
-          <Image
-            source={{
-              uri: "https://flagcdn.com/w40/in.png", // 🇮🇳 Flag
-            }}
-            style={styles.flag}
-          />
-          <Text style={styles.codeText}>+91</Text>
-        </View>
-        <TextInput
-          style={styles.phoneInput}
-          placeholder="Enter phone number"
-          keyboardType="number-pad"
-          maxLength={10}
-          value={phoneNumber}
-          onChangeText={setPhoneNumber}
-        />
-      </View>
+              <View style={styles.inputContainer}>
+                <View style={styles.countryCode}>
+                  <Image
+                    source={{
+                      uri: "https://flagcdn.com/w40/in.png", // 🇮🇳 Flag
+                    }}
+                    style={styles.flag}
+                  />
+                  <Text style={styles.codeText}>+91</Text>
+                </View>
+                <TextInput
+                  style={styles.phoneInput}
+                  placeholder="Enter phone number"
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                />
+              </View>
 
-      <View style={styles.infoBox}>
-        <Ionicons name="information-circle-outline" size={20} color="#555" />
-        <Text style={styles.infoText}>
-          Your number is safe with us – it’s private and won’t appear on your
-          profile.
-        </Text>
-      </View>
+              <View style={styles.infoBox}>
+                <Ionicons name="information-circle-outline" size={20} color="#555" />
+                <Text style={styles.infoText}>
+                  Your number is safe with us – it’s private and won’t appear on your
+                  profile.
+                </Text>
+              </View>
 
-      {/* <TouchableOpacity style={styles.otpButton}>
+              {/* <TouchableOpacity style={styles.otpButton}>
         <Text style={styles.otpText}>Get OTP</Text>
       </TouchableOpacity> */}
-      <View
-        style={{
-          marginTop: 500,
-        }}
-      >
-        {loading ? (
-          <ActivityIndicator size="large" color="#b8007e" />
-        ) : (
-          <Button text="Get OTP" onPress={handleGetOtp} />
-        )}
-      </View>
-    </View>
+              <View style={styles.buttonContainer}
+              /* style={{
+                marginTop: 500,
+              }} */
+              >
+                {loading ? (
+                  <ActivityIndicator size="large" color="#b8007e" />
+                ) : (
+                  <Button text="Get OTP" onPress={handleGetOtp} />
+                )}
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    /* flex: 1,
     padding: 24,
     backgroundColor: "#fff",
-    justifyContent: "flex-start",
+    justifyContent: "flex-start", */
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
+    backgroundColor: "#fff",
+  },
+  buttonContainer: {
+    marginTop: "auto",
+    paddingTop: 24,
   },
   header: {
     fontSize: 24,
@@ -143,8 +168,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 12,
     borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 30,
+    // alignItems: "center",
+    alignItems: "flex-start",
+    // marginBottom: 30,
+    marginBottom: 24,
   },
   infoText: {
     marginLeft: 8,

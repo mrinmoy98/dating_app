@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from "react-native";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
 import Button from "../components/Shared/Button";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function EmailScreen() {
   const router = useRouter();
@@ -39,41 +40,50 @@ export default function EmailScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>What's your email?</Text>
-      <Text style={styles.subtext}>
-        We'll send a verification code to make sure it's really you.
-      </Text>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "height" : "padding"}
+        >
+          <View style={styles.container}>
+            <Text style={styles.header}>What's your email?</Text>
+            <Text style={styles.subtext}>
+              We'll send a verification code to make sure it's really you.
+            </Text>
 
-      <View style={styles.inputContainer}>
-        <Ionicons name="mail-outline" size={20} color="#888" />
-        <TextInput
-          style={styles.emailInput}
-          placeholder="you@example.com"
-          placeholderTextColor="#999"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={emailInput}
-          onChangeText={setEmailInput}
-        />
-      </View>
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color="#888" />
+              <TextInput
+                style={styles.emailInput}
+                placeholder="you@example.com"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={emailInput}
+                onChangeText={setEmailInput}
+              />
+            </View>
 
-      <View style={styles.infoBox}>
-        <Ionicons name="information-circle-outline" size={20} color="#555" />
-        <Text style={styles.infoText}>
-          Your email stays private and won't appear on your profile.
-        </Text>
-      </View>
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle-outline" size={20} color="#555" />
+              <Text style={styles.infoText}>
+                Your email stays private and won't appear on your profile.
+              </Text>
+            </View>
 
-      <View style={{ marginTop: "auto" }}>
-        {loading ? (
-          <ActivityIndicator size="large" color="#b8007e" />
-        ) : (
-          <Button text="Send code" onPress={handleSend} />
-        )}
-      </View>
-    </View>
+            <View style={{ marginTop: "auto" }}>
+              {loading ? (
+                <ActivityIndicator size="large" color="#b8007e" />
+              ) : (
+                <Button text="Send code" onPress={handleSend} />
+              )}
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 }
 

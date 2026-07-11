@@ -8,23 +8,23 @@ import {
   View
 } from "react-native";
 import Button from "./components/Shared/Button";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LandingScreen() {
   const router = useRouter()
   return (
+    // <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
     <View style={styles.container}>
-      <Video 
+      <Video
         source={{
           uri: "https://videos.pexels.com/video-files/9431531/9431531-uhd_1440_2560_24fps.mp4",
         }} // Replace with your own video URL
         rate={1.0}
         volume={0.0}
         isMuted
-        // resizeMode="cover"
         resizeMode={ResizeMode.COVER}
         shouldPlay
         isLooping
-        // style={StyleSheet.absoluteFillObject}
         style={[{ ...StyleSheet.absoluteFillObject, opacity: 0.3 }]}
       />
 
@@ -48,10 +48,13 @@ export default function LandingScreen() {
 
         <Text style={styles.title}>Nothing casual about this dating app</Text>
 
-        {/* <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Get Started</Text>
-        </TouchableOpacity> */}
-        <Button text="Get Started" onPress={()=> router.push('/(auth)/PhoneScreen')} />
+        {/* <Button text="Get Started" onPress={()=> router.push('/(auth)/PhoneScreen')} /> */}
+        <View style={styles.buttonContainer}>
+          <Button
+            text="Get Started"
+            onPress={() => router.push("/(auth)/PhoneScreen")}
+          />
+        </View>
 
         <Text style={styles.loginLink} onPress={() => router.push('/(auth)/PasswordLoginScreen')}>
           Already have an account? <Text style={styles.loginLinkBold}>Log in</Text>
@@ -70,6 +73,7 @@ export default function LandingScreen() {
         </Text>
       </View>
     </View>
+    // </SafeAreaView>
   );
 }
 
@@ -77,6 +81,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
+  },
+  buttonContainer: {
+    width: "100%",
+    marginVertical: 20,
   },
   overlay: {
     flex: 1,
@@ -118,18 +126,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: 15,
   },
-//   button: {
-//     backgroundColor: "#b8007e",
-//     paddingVertical: 15,
-//     paddingHorizontal: 80,
-//     borderRadius: 30,
-//     marginBottom: 20,
-//   },
-//   buttonText: {
-//     color: "#fff",
-//     fontWeight: "600",
-//     fontSize: 16,
-//   },
   loginLink: {
     color: "#fff",
     fontSize: 14,

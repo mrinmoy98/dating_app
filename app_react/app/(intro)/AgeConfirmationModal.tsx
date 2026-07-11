@@ -1,14 +1,14 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useRegistration } from "../../context/RegistrationContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 /** Compute age in whole years from an ISO date string. */
 function ageFromIso(iso?: string): number | null {
@@ -30,7 +30,8 @@ export default function AgeConfirmationModal() {
   const age = ageFromIso(data.dob); // from the DOB entered on the previous screen
 
   return (
-    <SafeAreaView style={styles.container}>
+    // <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
       <Modal visible={visible} transparent animationType="fade">
         <View style={styles.overlay}>
           <View style={styles.modalBox}>
@@ -46,7 +47,14 @@ export default function AgeConfirmationModal() {
               <TouchableOpacity
                 style={[styles.button, styles.yesButton]}
                 // onPress={() => setVisible(false)}
-                onPress={() => router.push('/(intro)/HeightSelector')}
+                // onPress={() => router.push('/(intro)/HeightSelector')}
+                onPress={() => {
+                  setVisible(false);
+
+                  setTimeout(() => {
+                    router.push("/(intro)/HeightSelector");
+                  }, 200);
+                }}
               >
                 <Text style={styles.yesText}>Yes</Text>
               </TouchableOpacity>
@@ -106,7 +114,7 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: "flex-start",
   },
-  
+
   button: {
     paddingVertical: 10,
     paddingHorizontal: 24,

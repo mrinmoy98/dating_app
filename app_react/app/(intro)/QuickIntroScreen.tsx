@@ -123,7 +123,8 @@ export default function QuickIntroScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    // <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <ProgressBar />
         <Text style={styles.title}>Let's start with a{"\n"}quick intro</Text>
@@ -133,7 +134,7 @@ export default function QuickIntroScreen() {
         <TextInput style={styles.input} placeholder="Last name (optional)" placeholderTextColor="#888" value={lastName} onChangeText={setLastName} />
 
         {/* DOB */}
-        <TouchableOpacity style={styles.input} activeOpacity={0.7} onPress={() => setShowPicker(true)}>
+        <TouchableOpacity style={styles.input   } activeOpacity={0.7} onPress={() => setShowPicker(true)}>
           <Text style={{ fontSize: 16, color: dob ? "#000" : "#888" }}>
             {dob ? formatDate(dob) : "Date of birth *  (DD / MM / YYYY)"}
           </Text>
@@ -145,6 +146,7 @@ export default function QuickIntroScreen() {
             display={Platform.OS === "ios" ? "spinner" : "default"}
             maximumDate={new Date()}
             onChange={onChangeDate}
+            themeVariant="light"
           />
         )}
         {Platform.OS === "ios" && showPicker && (

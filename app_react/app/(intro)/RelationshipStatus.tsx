@@ -2,15 +2,15 @@ import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
 import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const statusOptions = [
   'Single',
@@ -29,60 +29,67 @@ export default function RelationshipStatus() {
   const [selectedStatus, setSelectedStatus] = useState('');
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* <View style={styles.progressBar} /> */}
-      <ProgressBar />
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <View style={styles.container}>
+        <ProgressBar />
 
-      <Text style={styles.heading}>What’s your{'\n'}status?</Text>
-      <Text style={styles.subheading}>
-        By selecting an option below, you confirm that{'\n'}you’re not in a committed relationship.
-      </Text>
-
-      <View style={styles.optionsWrapper}>
-        {statusOptions.map((status, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.optionButton,
-              selectedStatus === status && styles.selectedButton,
-            ]}
-            onPress={() => setSelectedStatus(status)}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                selectedStatus === status && styles.selectedText,
-              ]}
-            >
-              {status}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.noteBox}>
-        <AntDesign name="infocirlceo" size={16} color="#555" />
-        <Text style={styles.noteText}>
-          You can always edit this in your profile.
+        <Text style={styles.heading}>What’s your{'\n'}status?</Text>
+        <Text style={styles.subheading}>
+          By selecting an option below, you confirm that{'\n'}you’re not in a committed relationship.
         </Text>
-      </View>
 
-      <IntroNav
-        onNext={() => {
-          patch({ relationship_status: selectedStatus || undefined });
-          router.push('/(intro)/ReligionSelection');
-        }}
-      />
+        <View style={styles.optionsWrapper}>
+          {statusOptions.map((status, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.optionButton,
+                selectedStatus === status && styles.selectedButton,
+              ]}
+              onPress={() => setSelectedStatus(status)}
+            >
+              <Text
+                style={[
+                  styles.optionText,
+                  selectedStatus === status && styles.selectedText,
+                ]}
+              >
+                {status}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.bottomContainer}>
+          <View style={styles.noteBox}>
+            <AntDesign name="infocirlceo" size={16} color="#555" />
+            <Text style={styles.noteText}>
+              You can always edit this in your profile.
+            </Text>
+          </View>
+
+          <IntroNav
+            onNext={() => {
+              patch({ relationship_status: selectedStatus || undefined });
+              router.push('/(intro)/ReligionSelection');
+            }}
+          />
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  bottomContainer: {
+    marginTop: "auto",
+    paddingBottom: 20,
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 24,
-    paddingTop:90
+    paddingTop: 24
   },
   progressBar: {
     height: 4,
@@ -135,6 +142,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     gap: 8,
+    marginBottom: 80,
   },
   noteText: {
     flex: 1,

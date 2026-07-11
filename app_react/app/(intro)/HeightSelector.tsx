@@ -2,16 +2,16 @@ import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    FlatList,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
 import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HeightSelector() {
   const router = useRouter();
@@ -28,8 +28,7 @@ export default function HeightSelector() {
   const [selectedIndex, setSelectedIndex] = useState(2); // Default selected (5'0")
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* <View style={styles.progressBar} /> */}
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <ProgressBar />
 
       <Text style={styles.heading}>How tall{'\n'}are you?</Text>
@@ -64,24 +63,26 @@ export default function HeightSelector() {
         )}
       />
 
-      <View style={styles.noteBox}>
-        <AntDesign name="infocirlceo" size={16} color="#555" />
-        <Text style={styles.noteText}>
-          This will help us find potential matches who’ll appreciate you just as you are.
-        </Text>
-      </View>
+      <View style={styles.bottomContainer}>
+        <View style={styles.noteBox}>
+          <AntDesign name="info-circle" size={16} color="#555" />
+          <Text style={styles.noteText}>
+            This will help us find potential matches who’ll appreciate you just as you are.
+          </Text>
+        </View>
 
-      <IntroNav
-        onNext={() => {
-          const label = heights[selectedIndex].label;
-          const cmMatch = /\((\d+)\s*cm\)/.exec(label);
-          patch({
-            height_label: label,
-            height_cm: cmMatch ? Number(cmMatch[1]) : undefined,
-          });
-          router.push('/(intro)/RelationshipStatus');
-        }}
-      />
+        <IntroNav
+          onNext={() => {
+            const label = heights[selectedIndex].label;
+            const cmMatch = /\((\d+)\s*cm\)/.exec(label);
+            patch({
+              height_label: label,
+              height_cm: cmMatch ? Number(cmMatch[1]) : undefined,
+            });
+            router.push('/(intro)/RelationshipStatus');
+          }}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -91,20 +92,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     backgroundColor: '#fff',
-    paddingTop:90
+    paddingTop: 24
   },
-//   progressBar: {
-//     height: 4,
-//     backgroundColor: '#111',
-//     width: '20%',
-//     borderRadius: 4,
-//     marginVertical: 16,
-//   },
   heading: {
     fontSize: 28,
     fontWeight: '700',
     color: '#111',
-    marginBottom: 6,
+    marginTop: 20,
+    marginBottom: 8,
   },
   subheading: {
     fontSize: 14,
@@ -121,6 +116,10 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 18,
     fontWeight: '500',
+  },
+  bottomContainer: {
+    marginTop: "auto",
+    paddingBottom: 20,
   },
   selectedItem: {
     backgroundColor: '#000',
@@ -141,7 +140,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    marginBottom: 40,
+    marginBottom: 80,
   },
   noteText: {
     flex: 1,

@@ -7,6 +7,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useRegistration } from '../../context/RegistrationContext';
 import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const options = [
   'Settle down',
@@ -22,49 +23,52 @@ export default function RelationshipGoalsScreen() {
   const [selected, setSelected] = useState('');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <View style={styles.container}>
         <ProgressBar />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>What are your relationship goals?</Text>
-        <Text style={styles.subtitle}>
-          It’s your journey, choose the option that feels right for you.
-        </Text>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.title}>What are your relationship goals?</Text>
+          <Text style={styles.subtitle}>
+            It’s your journey, choose the option that feels right for you.
+          </Text>
 
-        {options.map((option, index) => {
-          const isSelected = selected === option;
-          const isLast = index === options.length - 1;
+          {options.map((option, index) => {
+            const isSelected = selected === option;
+            const isLast = index === options.length - 1;
 
-          return (
-            <TouchableOpacity
-              key={option}
-              onPress={() => setSelected(option)}
-              style={[
-                styles.optionButton,
-                isSelected && (isLast ? styles.selectedLast : styles.selectedOption),
-                isLast && styles.lastOption,
-              ]}
-            >
-              <Text
+            return (
+              <TouchableOpacity
+                key={option}
+                onPress={() => setSelected(option)}
                 style={[
-                  styles.optionText,
-                  isSelected && styles.selectedText,
-                  isLast && styles.lastOptionText,
+                  styles.optionButton,
+                  isSelected && (isLast ? styles.selectedLast : styles.selectedOption),
+                  isLast && styles.lastOption,
                 ]}
               >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+                <Text
+                  style={[
+                    styles.optionText,
+                    isSelected && styles.selectedText,
+                    isLast && styles.lastOptionText,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-      <IntroNav
-        onNext={() => {
-          patch({ relationship_goal: selected || undefined });
-          router.push('/(intro)/VideoProfileScreen');
-        }}
-      />
-    </View>
+        <IntroNav
+          onNext={() => {
+            patch({ relationship_goal: selected || undefined });
+            router.push('/(intro)/VideoProfileScreen');
+          }}
+        />
+      </View>
+    </SafeAreaView>
+
   );
 }
 
