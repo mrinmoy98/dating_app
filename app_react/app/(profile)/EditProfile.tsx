@@ -5,7 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +22,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api, type Gender } from "../../lib/api";
+import { useAppDispatch } from "../../store/hooks";
+import { setUser } from "../../store/slices/authSlice";
 import ProfileSection from "../components/ProfileSection";
 
 const GENDERS: Gender[] = ["Male", "Female", "Other"];
@@ -180,6 +182,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, authToken, setAuth } = useRegistration();
+  const dispatch = useAppDispatch();
 
   // ---- committed profile state ----
   const [firstName, setFirstName] = useState<string>(user?.first_name ?? "");
@@ -241,6 +244,46 @@ export default function EditProfileScreen() {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // On open, load the latest profile from the backend and (re)fill every field,
+  // so the form always reflects what's actually saved (not a stale cached user).
+  useEffect(() => {
+    if (!authToken) return;
+    let active = true;
+    api
+      .me(authToken)
+      .then((u: any) => {
+        if (!active || !u) return;
+        setFirstName(u.first_name ?? "");
+        setLastName(u.last_name ?? "");
+        setDobDate(u.dob ? new Date(u.dob) : null);
+        setGender(u.gender ?? null);
+        setLocation(u.location ?? "");
+        setBio(u.bio ?? "");
+        setHeightCm(u.height_cm ?? null);
+        setWeightKg(u.weight_kg ?? null);
+        setReligion(u.religion ?? "");
+        setLanguages(u.other_languages ?? []);
+        setOccupation(u.occupation ?? "");
+        setEducation(u.education ?? "");
+        setDiet(u.diet ?? "");
+        setInterests(u.interests ?? []);
+        setBloodGroup(u.blood_group ?? "");
+        setComplexion(u.complexion ?? "");
+        setHealthInfo(u.health_info ?? "");
+        setCity(u.address?.city ?? "");
+        setStateName(u.address?.state ?? "");
+        setCountry(u.address?.country ?? "");
+        setLatitude(u.latitude ?? u.address?.latitude ?? null);
+        setLongitude(u.longitude ?? u.address?.longitude ?? null);
+        setPhotos((u.photos ?? []).map((p: any) => p.url));
+        dispatch(setUser(u)); // keep the store fresh for the rest of the app
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [authToken, dispatch]);
 
   // ---- DOB calendar ----
   const [showDatePicker, setShowDatePicker] = useState(false);

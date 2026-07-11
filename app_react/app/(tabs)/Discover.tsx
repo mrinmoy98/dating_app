@@ -3,10 +3,12 @@ import { mockProfiles } from "@/utils/mockData";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, PanResponder, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Dimensions, PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
+import { useAppDispatch } from "../../store/hooks";
+import { addMatch } from "../../store/slices/matchSlice";
 import ProfileCard from "../components/ProfileCard";
 import ProfileDetails from "../components/ProfileDetails";
 import ActionButton from "../components/Shared/ActionButton";
@@ -16,6 +18,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
 export default function Discover() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { authToken } = useRegistration();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -59,8 +62,24 @@ export default function Discover() {
   };
 
   const handleSwipeComplete = (direction: any) => {
+    const profile = profiles[currentIndex];
     position.setValue({ x: 0, y: 0 });
     setCurrentIndex((prevIndex) => prevIndex + 1);
+
+    // Record the swipe on the backend (only for real candidates, not mock data).
+    const isRealId = /^[a-f0-9]{24}$/i.test(String(profile?.id ?? ""));
+    if (authToken && isRealId) {
+      const action = direction === "right" ? "like" : "pass";
+      api
+        .swipe(profile.id, action, authToken)
+        .then((res) => {
+          if (res.matched && res.match) {
+            dispatch(addMatch(res.match));
+            Alert.alert("It's a match! 💕", `You and ${res.match.firstName ?? "someone"} liked each other.`);
+          }
+        })
+        .catch(() => {});
+    }
   };
 
    const rotate = position.x.interpolate({

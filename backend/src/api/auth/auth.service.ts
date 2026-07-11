@@ -13,6 +13,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomInt } from 'crypto';
 import { Model } from 'mongoose';
 import { Otp } from '../../entity/otp.entity';
+import { Swipe } from '../../entity/swipe.entity';
 import { User } from '../../entity/user.entity';
 import {
   LoginPasswordDto,
@@ -40,6 +41,7 @@ export class ApiAuthService {
     private readonly config: ConfigService,
     @InjectModel('User') private readonly userModel: Model<User>,
     @InjectModel('Otp') private readonly otpModel: Model<Otp>,
+    @InjectModel('Swipe') private readonly swipeModel: Model<Swipe>,
   ) {}
 
   // ===========================================================================
@@ -331,8 +333,12 @@ export class ApiAuthService {
     // Someone aged `ageMax` was born within the last `ageMax+1` years (oldest allowed).
     const minDob = new Date(now.getFullYear() - ageMax - 1, now.getMonth(), now.getDate());
 
+    // Exclude the user themselves and anyone they've already swiped.
+    const swiped = await this.swipeModel.find({ from: me._id }).select('to').lean();
+    const excludeIds = [me._id, ...swiped.map((s) => s.to)];
+
     const query: any = {
-      _id: { $ne: me._id },
+      _id: { $nin: excludeIds },
       status: 'active',
       is_profile_complete: true,
       dob: { $gte: minDob, $lte: maxDob },

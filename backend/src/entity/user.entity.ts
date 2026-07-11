@@ -1,34 +1,22 @@
 import * as mongoose from 'mongoose';
 
-/**
- * Dating-app end user. Identity is phone-based (OTP login) — there is NO
- * password and NO email for regular users. Every onboarding field the mobile
- * app collects has its own typed field here (no JSON blobs).
- */
-
 export type Gender = 'Male' | 'Female' | 'Other';
 export type Habit = 'Regularly' | 'Sometimes' | 'Never';
 export type UserStatus = 'active' | 'banned';
 
-/**
- * Partner preferences — the criteria used to find candidates in Discover.
- * Empty arrays / null mean "no filter" for that dimension.
- */
 const PreferenceSchema = new mongoose.Schema(
   {
-    interested_in: { type: [String], default: [] }, // genders the user wants to see; [] = any
+    interested_in: { type: [String], default: [] },
     age_min: { type: Number, default: 18 },
     age_max: { type: Number, default: 60 },
     max_distance_km: { type: Number, default: 100 },
-    preferred_religions: { type: [String], default: [] }, // [] = any
-    relationship_goal: { type: String, default: null }, // desired goal; null = any
-    // physical range (canonical cm / kg)
+    preferred_religions: { type: [String], default: [] },
+    relationship_goal: { type: String, default: null },
     min_height_cm: { type: Number, default: null },
     max_height_cm: { type: Number, default: null },
     min_weight_kg: { type: Number, default: null },
     max_weight_kg: { type: Number, default: null },
-    // partner marital status + income expectation
-    marital_status: { type: [String], default: [] }, // [] = any
+    marital_status: { type: [String], default: [] },
     income_currency: { type: String, default: null },
     income_min: { type: Number, default: null },
     income_max: { type: Number, default: null },
@@ -36,11 +24,10 @@ const PreferenceSchema = new mongoose.Schema(
   { _id: false },
 );
 
-/** One family member (matrimony-style family details). */
 const FamilyDetailSchema = new mongoose.Schema(
   {
     name: { type: String, default: '' },
-    relation: { type: String, default: '' }, // Father, Mother, Brother, …
+    relation: { type: String, default: '' },
     profession: { type: String, default: '' },
     currency: { type: String, default: null },
     income: { type: Number, default: null },
@@ -48,7 +35,6 @@ const FamilyDetailSchema = new mongoose.Schema(
   { _id: false },
 );
 
-/** Structured postal address with coordinates (drives distance search). */
 const AddressSchema = new mongoose.Schema(
   {
     locality: { type: String, default: '' },
@@ -62,11 +48,10 @@ const AddressSchema = new mongoose.Schema(
   { _id: false },
 );
 
-/** A single profile photo (face-reveal step uploads up to 4). */
 const PhotoSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
-    position: { type: Number, default: 0 }, // 0..3 ordering on the profile
+    position: { type: Number, default: 0 },
     is_primary: { type: Boolean, default: false },
   },
   { _id: false },
@@ -74,63 +59,42 @@ const PhotoSchema = new mongoose.Schema(
 
 export const UserSchema = new mongoose.Schema(
   {
-    // ---- identity ----
-    phone: { type: String, required: true, unique: true, trim: true }, // E.164, e.g. +919476448744
+    phone: { type: String, required: true, unique: true, trim: true },
     phone_verified: { type: Boolean, default: false },
     email: { type: String, default: null, lowercase: true, trim: true },
     email_verified: { type: Boolean, default: false },
-    password: { type: String, default: null, select: false }, // bcrypt hash; optional password login
-
-    // ---- basic profile (QuickIntro step) ----
+    password: { type: String, default: null, select: false },
     first_name: { type: String, default: null, trim: true },
     last_name: { type: String, default: null, trim: true },
-    dob: { type: Date, default: null }, // birth date; age is computed from this
+    dob: { type: Date, default: null },
     gender: { type: String, enum: ['Male', 'Female', 'Other'], default: null },
-
-    // ---- location (QuickIntro step) ----
-    location: { type: String, default: null }, // free-text city/area the user typed
+    location: { type: String, default: null },
     latitude: { type: Number, default: null },
     longitude: { type: Number, default: null },
-
-    // ---- physical (Height step) ----
     height_cm: { type: Number, default: null },
-    height_label: { type: String, default: null }, // e.g. `5'0" (152 cm)`
-    weight_kg: { type: Number, default: null }, // canonical weight in kg (UI may enter kg or lbs)
-
-    // ---- lifestyle / preference steps ----
-    relationship_status: { type: String, default: null }, // Single, Divorced, ...
+    height_label: { type: String, default: null },
+    weight_kg: { type: Number, default: null },
+    relationship_status: { type: String, default: null },
     religion: { type: String, default: null },
     mother_tongue: { type: String, default: null },
     other_languages: { type: [String], default: [] },
     smoking: { type: String, enum: ['Regularly', 'Sometimes', 'Never'], default: null },
     drinking: { type: String, enum: ['Regularly', 'Sometimes', 'Never'], default: null },
     relationship_goal: { type: String, default: null },
-
-    // ---- extended profile (dating details) ----
-    bio: { type: String, default: null }, // free-text "About me"
+    bio: { type: String, default: null },
     occupation: { type: String, default: null },
     education: { type: String, default: null },
-    interests: { type: [String], default: [] }, // hobbies/tags shown on the card
-    diet: { type: String, default: null }, // Vegetarian, Non-vegetarian, Vegan, Eggetarian
-
-    // ---- matrimony details ----
-    blood_group: { type: String, default: null }, // A+, O-, …
-    complexion: { type: String, default: null }, // Fair, Wheatish, Dark, …
-    health_info: { type: String, default: null }, // e.g. No health problem, Diabetes, …
+    interests: { type: [String], default: [] },
+    diet: { type: String, default: null },
+    blood_group: { type: String, default: null },
+    complexion: { type: String, default: null },
+    health_info: { type: String, default: null },
     disability: { type: String, default: null },
     family_details: { type: [FamilyDetailSchema], default: [] },
-
-    // ---- structured address (drives distance search) ----
     address: { type: AddressSchema, default: () => ({}) },
-
-    // ---- media ----
     photos: { type: [PhotoSchema], default: [] },
-    video_url: { type: String, default: null }, // optional intro video
-
-    // ---- partner preferences (drives Discover) ----
+    video_url: { type: String, default: null },
     preferences: { type: PreferenceSchema, default: () => ({}) },
-
-    // ---- account state ----
     role: { type: String, default: 'user' },
     status: { type: String, enum: ['active', 'banned'], default: 'active' },
     is_profile_complete: { type: Boolean, default: false },
@@ -139,12 +103,6 @@ export const UserSchema = new mongoose.Schema(
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } },
 );
 
-/**
- * One account per email. A partial unique index enforces uniqueness only over
- * real string emails, so the many users that still have `email: null` (before
- * they verify) don't collide with each other. Combined with the `unique` phone
- * above, this guarantees: one phone number AND one email = exactly one account.
- */
 UserSchema.index(
   { email: 1 },
   { unique: true, partialFilterExpression: { email: { $type: 'string' } } },

@@ -9,6 +9,8 @@ import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRegistration } from '../../context/RegistrationContext';
 import { api } from '../../lib/api';
+import { useAppDispatch } from '../../store/hooks';
+import { setUser } from '../../store/slices/authSlice';
 import ProfileSection from '../components/ProfileSection';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
 import Button from '../components/Shared/Button';
@@ -28,15 +30,23 @@ function ageFromDob(dob?: string | null): number | null {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user: ctxUser, authToken, reset } = useRegistration();
+  const dispatch = useAppDispatch();
   const [remote, setRemote] = useState<any | null>(ctxUser);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null); // null = viewer closed
 
-  // Refresh the profile from the backend whenever we have an auth token.
+  // Refresh the profile from the backend whenever we have an auth token, and
+  // push it into the store so every screen sees the latest data.
   useEffect(() => {
     if (!authToken) return;
-    api.me(authToken).then(setRemote).catch(() => {});
-  }, [authToken]);
+    api
+      .me(authToken)
+      .then((u) => {
+        setRemote(u);
+        dispatch(setUser(u));
+      })
+      .catch(() => {});
+  }, [authToken, dispatch]);
 
   const openWebBrowser = async () => {
     if (Platform.OS !== 'web') {

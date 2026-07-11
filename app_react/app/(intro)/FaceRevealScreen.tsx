@@ -36,21 +36,12 @@ export default function FaceRevealScreen() {
       const photoUrls = await api.uploadPhotos(uris, registrationToken);
       const res = await api.register(
         {
+          // Forward EVERYTHING collected across the onboarding screens
+          // (last_name, city, state, country, latitude/longitude, etc.),
+          // then set the required/computed fields.
+          ...data,
           first_name: (data.first_name as string) || "New User",
-          dob: data.dob,
-          gender: data.gender,
-          location: data.location,
-          height_cm: data.height_cm,
-          height_label: data.height_label,
-          relationship_status: data.relationship_status,
-          religion: data.religion,
-          mother_tongue: data.mother_tongue,
-          other_languages: data.other_languages,
-          smoking: data.smoking,
-          drinking: data.drinking,
-          relationship_goal: data.relationship_goal,
           photos: photoUrls,
-          video_url: data.video_url,
         },
         registrationToken,
       );

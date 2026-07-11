@@ -1,6 +1,10 @@
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { RegistrationProvider, useRegistration } from "../context/RegistrationContext";
+import { Provider } from "react-redux";
+import { store } from "../store";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { bootstrapSession } from "../store/slices/authSlice";
 
 /**
  * Auth-aware navigator. `Stack.Protected` removes the screens whose guard is
@@ -9,10 +13,14 @@ import { RegistrationProvider, useRegistration } from "../context/RegistrationCo
  * app instead of returning to login/register), and vice-versa.
  */
 function RootNavigator() {
-  const { authToken, isBootstrapping } = useRegistration();
+  const dispatch = useAppDispatch();
+  const { authToken, isBootstrapping } = useAppSelector((s) => s.auth);
 
-  // While we restore the saved session, show a splash so we never flash the
-  // login screen to an already-logged-in user.
+  // Restore any saved session once on launch.
+  useEffect(() => {
+    dispatch(bootstrapSession());
+  }, [dispatch]);
+
   if (isBootstrapping) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }}>
@@ -62,8 +70,8 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <RegistrationProvider>
+    <Provider store={store}>
       <RootNavigator />
-    </RegistrationProvider>
+    </Provider>
   );
 }
