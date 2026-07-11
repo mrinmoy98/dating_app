@@ -29,6 +29,18 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
+      // The admin panel (public/admin.html) is served over http on LAN/dev and
+      // shows user photos uploaded from any host, so relax two CSP defaults:
+      //  - allow images from any http/https host (+ data/blob)
+      //  - don't force-upgrade http requests to https (breaks http on LAN)
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'img-src': ["'self'", 'data:', 'blob:', 'http:', 'https:'],
+          'media-src': ["'self'", 'data:', 'blob:', 'http:', 'https:'],
+          'upgrade-insecure-requests': null,
+        },
+      },
     }),
   );
 
