@@ -16,33 +16,125 @@ export default function VideoProfileScreen() {
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const pickVideo = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 1,
-      videoMaxDuration: 60,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const uri = result.assets[0].uri;
+  const uploadVideo = async (uri: string) => {
     setVideoUri(uri);
 
     if (!registrationToken) {
-      Alert.alert("Session expired", "Please verify your phone number again.");
+      Alert.alert(
+        "Session expired",
+        "Please verify your phone number again."
+      );
       router.replace("/(auth)/PhoneScreen");
       return;
     }
+
     try {
       setUploading(true);
+
       const url = await api.uploadVideo(uri, registrationToken);
-      patch({ video_url: url }); // stored so the final register call includes it
-      Alert.alert("Video uploaded ✅", "Your intro video was added successfully.");
+
+      patch({
+        video_url: url,
+      });
+
+      Alert.alert(
+        "Video uploaded ✅",
+        "Your intro video was added successfully."
+      );
     } catch (e: any) {
-      Alert.alert("Video upload failed", e?.message ?? "Please try again.");
+      Alert.alert(
+        "Video upload failed",
+        e?.message ?? "Please try again."
+      );
       setVideoUri(null);
     } finally {
       setUploading(false);
     }
   };
+
+  const recordVideo = async () => {
+    const permission =
+      await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Camera permission is required to record a video."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["videos"],
+      quality: 1,
+      videoMaxDuration: 60,
+    });
+
+    if (result.canceled || !result.assets?.length) return;
+
+    await uploadVideo(result.assets[0].uri);
+  };
+
+  const chooseVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["videos"],
+      quality: 1,
+      videoMaxDuration: 60,
+    });
+
+    if (result.canceled || !result.assets?.length) return;
+
+    await uploadVideo(result.assets[0].uri);
+  };
+
+  const pickVideo = () => {
+    Alert.alert(
+      "Select Video",
+      "Choose how you want to add your introduction video.",
+      [
+        {
+          text: "📹 Record Video",
+          onPress: recordVideo,
+        },
+        {
+          text: "🖼️ Choose from Gallery",
+          onPress: chooseVideo,
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  // const pickVideo = async () => {
+  //   const result = await ImagePicker.launchImageLibraryAsync({
+  //     mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+  //     quality: 1,
+  //     videoMaxDuration: 60,
+  //   });
+  //   if (result.canceled || !result.assets?.length) return;
+  //   const uri = result.assets[0].uri;
+  //   setVideoUri(uri);
+
+  //   if (!registrationToken) {
+  //     Alert.alert("Session expired", "Please verify your phone number again.");
+  //     router.replace("/(auth)/PhoneScreen");
+  //     return;
+  //   }
+  //   try {
+  //     setUploading(true);
+  //     const url = await api.uploadVideo(uri, registrationToken);
+  //     patch({ video_url: url }); // stored so the final register call includes it
+  //     Alert.alert("Video uploaded ✅", "Your intro video was added successfully.");
+  //   } catch (e: any) {
+  //     Alert.alert("Video upload failed", e?.message ?? "Please try again.");
+  //     setVideoUri(null);
+  //   } finally {
+  //     setUploading(false);
+  //   }
+  // };
 
   const goNext = () => router.push("/(intro)/FaceRevealScreen");
 
@@ -55,7 +147,7 @@ export default function VideoProfileScreen() {
           A short intro video helps you stand out. This step is optional — you can skip it.
         </Text>
 
-        <TouchableOpacity style={styles.videoBox} onPress={pickVideo} activeOpacity={0.85}>
+        {/* <TouchableOpacity style={styles.videoBox} onPress={pickVideo} activeOpacity={0.85}>
           {videoUri ? (
             <Video
               source={{ uri: videoUri }}
@@ -74,6 +166,44 @@ export default function VideoProfileScreen() {
             <View style={styles.uploadOverlay}>
               <ActivityIndicator color="#fff" size="large" />
               <Text style={styles.uploadingText}>Uploading…</Text>
+            </View>
+          )}
+        </TouchableOpacity> */}
+        <TouchableOpacity
+          style={styles.videoBox}
+          onPress={pickVideo}
+          activeOpacity={0.85}
+        >
+          {videoUri ? (
+            <Video
+              source={{ uri: videoUri }}
+              style={styles.video}
+              useNativeControls
+              resizeMode={ResizeMode.COVER}
+              isLooping
+            />
+          ) : (
+            <View style={styles.placeholder}>
+              <MaterialIcons
+                name="videocam"
+                size={40}
+                color="#8d2561"
+              />
+              <Text style={styles.placeholderText}>
+                Tap to record / upload a video
+              </Text>
+            </View>
+          )}
+
+          {uploading && (
+            <View style={styles.uploadOverlay}>
+              <ActivityIndicator
+                color="#fff"
+                size="large"
+              />
+              <Text style={styles.uploadingText}>
+                Uploading…
+              </Text>
             </View>
           )}
         </TouchableOpacity>
