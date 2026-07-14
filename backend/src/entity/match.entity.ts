@@ -1,9 +1,5 @@
 import * as mongoose from 'mongoose';
 
-/**
- * A mutual like between two users. `pair_key` is the two sorted ids joined with
- * "_", which gives us a cheap unique constraint so a pair can only match once.
- */
 export const MatchSchema = new mongoose.Schema(
   {
     users: {
@@ -23,3 +19,5 @@ export interface Match extends mongoose.Document {
   created_at: Date;
   updated_at: Date;
 }
+
+

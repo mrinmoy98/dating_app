@@ -32,7 +32,7 @@ export default function MatchesScreen() {
   const renderNewMatch = ({ item }: { item: MatchItem }) => (
     <Pressable
       style={styles.newMatchItem}
-      onPress={() => router.push(`/(tabs)/Messages/${item.id}` as any)}
+      onPress={() => router.push(`/user/${item.id}` as any)}
     >
       <View style={styles.newMatchImageContainer}>
         <Image source={{ uri: item.photoUrl }} style={styles.newMatchImage} />
@@ -44,8 +44,7 @@ export default function MatchesScreen() {
   const renderMatch = ({ item }: { item: MatchItem }) => (
     <MatchCard
       match={item}
-      // onPress={() => router.push(`/messages/${item.id}`)}
-      onPress={() => router.push(`/(tabs)/Messages`)}
+      onPress={() => router.push(`/user/${item.id}` as any)}
     />
   );
 

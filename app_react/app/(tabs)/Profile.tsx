@@ -171,6 +171,17 @@ export default function ProfileScreen() {
           <Feather name="chevron-right" size={22} color={Colors.gray} />
         </Pressable>
 
+        <Pressable style={styles.prefCard} onPress={() => router.push('/(profile)/Connections' as any)}>
+          <View style={styles.prefIcon}>
+            <Feather name="users" size={20} color={Colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography style={styles.prefTitle}>My Connections</Typography>
+            <Typography style={styles.prefSub}>People you follow & your followers</Typography>
+          </View>
+          <Feather name="chevron-right" size={22} color={Colors.gray} />
+        </Pressable>
+
         <Pressable style={styles.prefCard} onPress={() => router.push('/(profile)/SetPassword')}>
           <View style={styles.prefIcon}>
             <Feather name="lock" size={20} color={Colors.primary} />

@@ -2,6 +2,7 @@ import { authApi } from "./auth";
 import { discoverApi } from "./discover";
 import { matchApi } from "./match";
 import { profileApi } from "./profile";
+import { socialApi } from "./social";
 import { uploadApi } from "./upload";
 
 // Re-export everything so callers can keep importing from "lib/api".
@@ -10,6 +11,7 @@ export { authApi } from "./auth";
 export { profileApi } from "./profile";
 export { discoverApi } from "./discover";
 export { matchApi } from "./match";
+export { socialApi } from "./social";
 export { uploadApi } from "./upload";
 export { http } from "./http";
 export { ENDPOINTS } from "./endpoints";
@@ -25,5 +27,6 @@ export const api = {
   ...profileApi,
   ...discoverApi,
   ...matchApi,
+  ...socialApi,
   ...uploadApi,
 };
