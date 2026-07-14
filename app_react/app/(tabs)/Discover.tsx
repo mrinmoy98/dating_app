@@ -3,7 +3,7 @@ import { mockProfiles } from "@/utils/mockData";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, Dimensions, PanResponder, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Dimensions, PanResponder, Pressable, StatusBar, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
@@ -233,6 +233,11 @@ export default function Discover() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar
+        translucent={false}
+        backgroundColor="#fff"
+        barStyle="dark-content"
+      />
       <View style={styles.header}>
         <Typography variant="title">Discover</Typography>
       </View>
@@ -246,13 +251,13 @@ export default function Discover() {
           onPress={swipeLeft}
         />
         <ActionButton
-          icon={<AntDesign name="staro" size={24} color="white" />}
+          icon={<AntDesign name="star" size={24} color="white" />}
           color={Colors.secondary}
           size="medium"
           onPress={() => {}}
         />
         <ActionButton
-          icon={<AntDesign name="hearto" size={24} color="white" />}
+          icon={<AntDesign name="heart" size={24} color="white" />}
           color={Colors.primary}
           onPress={swipeRight}
         />
@@ -272,7 +277,8 @@ export default function Discover() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    // backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
   },
   header: {
     padding: 16,

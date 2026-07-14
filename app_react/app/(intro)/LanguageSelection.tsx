@@ -81,7 +81,8 @@ export default function LanguageSelection() {
       <Text style={styles.heading}>What languages do{'\n'}you speak?</Text>
 
       <View style={styles.infoBox}>
-        <AntDesign name="infocirlceo" size={16} color="#555" />
+        {/* <AntDesign name="infocirlce" size={16} color="#555" /> */}
+        <AntDesign name="info-circle" size={16} color="#555" />
         <Text style={styles.infoText}>
           Select your mother tongue (mandatory)
         </Text>

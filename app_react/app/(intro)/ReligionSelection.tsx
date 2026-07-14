@@ -57,7 +57,7 @@ export default function ReligionSelection() {
         </View>
 
         <View style={styles.noteBox}>
-          <AntDesign name="infocirlceo" size={16} color="#555" />
+          <AntDesign name="info-circle" size={16} color="#555" />
           <Text style={styles.noteText}>
             You can always edit this in your profile.
           </Text>

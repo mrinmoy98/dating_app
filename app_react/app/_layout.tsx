@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StatusBar, View } from "react-native";
 import { Provider } from "react-redux";
 import { store } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -73,6 +73,11 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
+        <StatusBar
+          translucent={false}
+          backgroundColor="#fff"
+          barStyle="dark-content"
+        />
         <RootNavigator />
       </SafeAreaProvider>
     </Provider>

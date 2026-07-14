@@ -1,7 +1,7 @@
 import { mockConversations } from "@/utils/mockData";
 import { router } from "expo-router";
 import React from "react";
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Pressable, StatusBar, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ChatPreview from "../components/ChatPreview";
 import SearchInput from "../components/Shared/SearchInput";
@@ -70,6 +70,11 @@ export default function MessagesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar
+        translucent={false}
+        backgroundColor="#fff"
+        barStyle="dark-content"
+      />
       <View style={styles.header}>
         <Typography variant="title">Messages</Typography>
       </View>
@@ -100,7 +105,8 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
+    // backgroundColor: "#f5f5f5",
   },
   header: {
     padding: 16,
