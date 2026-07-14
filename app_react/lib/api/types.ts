@@ -98,6 +98,33 @@ export interface SwipeResult {
   match?: MatchUser;
 }
 
+export interface ConnectionUser {
+  id: string;
+  firstName: string | null;
+  lastName?: string | null;
+  age: number | null;
+  photoUrl: string | null;
+  photos: string[];
+  location: string | null;
+  bio: string | null;
+  occupation: string | null;
+  education: string | null;
+  interests: string[];
+  gender: string | null;
+  religion: string | null;
+  height_label: string | null;
+  relationship_goal: string | null;
+  verified: boolean;
+}
+
+export interface UserProfile extends ConnectionUser {
+  followers_count: number;
+  following_count: number;
+  is_following: boolean;
+  is_matched: boolean;
+  is_me: boolean;
+}
+
 export interface DiscoverCard {
   id: string;
   firstName: string;

@@ -1,0 +1,127 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { randomBytes } from 'crypto';
+import { Request } from 'express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { Roles } from '../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { CmsService } from './cms.service';
+
+const IMAGE_EXT = /\.(jpe?g|png|webp|gif|svg|avif)$/i;
+import {
+  CreateBannerDto,
+  CreatePageDto,
+  UpdateBannerDto,
+  UpdatePageDto,
+  UpdateSettingsDto,
+} from './dto/cms.dto';
+
+@ApiTags('Admin CMS')
+@ApiBearerAuth('JWT')
+@Controller('admin/cms')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'superadmin')
+export class AdminCmsController {
+  constructor(private readonly cms: CmsService) {}
+
+  // ---- Image upload (banners, logo, etc.) ----
+  @Post('upload')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload an image (field "file"); returns its public URL' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './public/uploads',
+        filename: (_req, file, cb) =>
+          cb(null, `${Date.now()}-${randomBytes(6).toString('hex')}${extname(file.originalname)}`),
+      }),
+      limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB
+      fileFilter: (_req, file, cb) =>
+        IMAGE_EXT.test(file.originalname)
+          ? cb(null, true)
+          : cb(new BadRequestException('Only image files are allowed'), false),
+    }),
+  )
+  upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    return { url: `${req.protocol}://${req.get('host')}/uploads/${file.filename}` };
+  }
+
+  // ---- Banners ----
+  @Get('banners')
+  @ApiOperation({ summary: 'List all banners' })
+  listBanners() {
+    return this.cms.listBanners();
+  }
+  @Post('banners')
+  @ApiOperation({ summary: 'Create a banner' })
+  createBanner(@Body() dto: CreateBannerDto) {
+    return this.cms.createBanner(dto);
+  }
+  @Patch('banners/:id')
+  @ApiOperation({ summary: 'Update a banner' })
+  updateBanner(@Param('id') id: string, @Body() dto: UpdateBannerDto) {
+    return this.cms.updateBanner(id, dto);
+  }
+  @Delete('banners/:id')
+  @ApiOperation({ summary: 'Delete a banner' })
+  deleteBanner(@Param('id') id: string) {
+    return this.cms.deleteBanner(id);
+  }
+
+  // ---- Pages ----
+  @Get('pages')
+  @ApiOperation({ summary: 'List all CMS pages' })
+  listPages() {
+    return this.cms.listPages();
+  }
+  @Get('pages/:slug')
+  @ApiOperation({ summary: 'Get a page by slug' })
+  getPage(@Param('slug') slug: string) {
+    return this.cms.getPage(slug);
+  }
+  @Post('pages')
+  @ApiOperation({ summary: 'Create a CMS page' })
+  createPage(@Body() dto: CreatePageDto) {
+    return this.cms.createPage(dto);
+  }
+  @Patch('pages/:id')
+  @ApiOperation({ summary: 'Update a CMS page' })
+  updatePage(@Param('id') id: string, @Body() dto: UpdatePageDto) {
+    return this.cms.updatePage(id, dto);
+  }
+  @Delete('pages/:id')
+  @ApiOperation({ summary: 'Delete a CMS page' })
+  deletePage(@Param('id') id: string) {
+    return this.cms.deletePage(id);
+  }
+
+  // ---- Settings ----
+  @Get('settings')
+  @ApiOperation({ summary: 'Get global site settings' })
+  getSettings() {
+    return this.cms.getSettings();
+  }
+  @Put('settings')
+  @ApiOperation({ summary: 'Update global site settings' })
+  updateSettings(@Body() dto: UpdateSettingsDto) {
+    return this.cms.updateSettings(dto);
+  }
+}

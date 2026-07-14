@@ -62,6 +62,8 @@ function RootNavigator() {
         <Stack.Screen name="(profile)/EditProfile" options={{ presentation: "modal" }} />
         <Stack.Screen name="(profile)/Preferences" options={{ presentation: "modal" }} />
         <Stack.Screen name="(profile)/SetPassword" options={{ presentation: "modal" }} />
+        <Stack.Screen name="(profile)/Connections" options={{ presentation: "modal" }} />
+        <Stack.Screen name="user/[id]" />
         <Stack.Screen name="conversation/[id]" />
       </Stack.Protected>
     </Stack>
