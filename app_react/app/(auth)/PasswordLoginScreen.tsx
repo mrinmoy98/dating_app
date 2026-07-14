@@ -5,12 +5,15 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,54 +44,133 @@ export default function PasswordLoginScreen() {
     }
   };
 
+  // return (
+  //   <SafeAreaView style={styles.container}>
+  //     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+  //       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+  //         <View style={styles.body}>
+  //           <Pressable style={styles.back} onPress={() => router.back()}>
+  //             <Feather name="arrow-left" size={24} color={Colors.text} />
+  //           </Pressable>
+
+  //           <Text style={styles.title}>Welcome back</Text>
+  //           <Text style={styles.subtitle}>Log in with your email or phone and password.</Text>
+
+  //           <View style={styles.inputBox}>
+  //             <Feather name="user" size={18} color={Colors.gray} />
+  //             <TextInput
+  //               style={styles.input}
+  //               placeholder="Email or phone (+91…)"
+  //               placeholderTextColor={Colors.gray}
+  //               autoCapitalize="none"
+  //               autoCorrect={false}
+  //               value={identifier}
+  //               onChangeText={setIdentifier}
+  //             />
+  //           </View>
+
+  //           <View style={styles.inputBox}>
+  //             <Feather name="lock" size={18} color={Colors.gray} />
+  //             <TextInput
+  //               style={styles.input}
+  //               placeholder="Password"
+  //               placeholderTextColor={Colors.gray}
+  //               secureTextEntry={!show}
+  //               value={password}
+  //               onChangeText={setPassword}
+  //             />
+  //             <Pressable onPress={() => setShow((s) => !s)}>
+  //               <Feather name={show ? "eye-off" : "eye"} size={18} color={Colors.gray} />
+  //             </Pressable>
+  //           </View>
+
+  //           <Pressable style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
+  //             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Log in</Text>}
+  //           </Pressable>
+
+  //           <Pressable style={styles.otpLink} onPress={() => router.replace("/(auth)/PhoneScreen")}>
+  //             <Text style={styles.otpLinkText}>Use OTP instead</Text>
+  //           </Pressable>
+  //         </View>
+  //       </KeyboardAvoidingView>
+  //     </TouchableWithoutFeedback>
+  //   </SafeAreaView>
+  // );
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <View style={styles.body}>
-          <Pressable style={styles.back} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={24} color={Colors.text} />
-          </Pressable>
+      <StatusBar
+        translucent={false}
+        backgroundColor="#fff"
+        barStyle="dark-content"
+      />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.body}>
+            <Pressable style={styles.back} onPress={() => router.back()}>
+              <Feather name="arrow-left" size={24} color={Colors.text} />
+            </Pressable>
 
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Log in with your email or phone and password.</Text>
+            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.subtitle}>
+              Log in with your email or phone and password.
+            </Text>
 
-          <View style={styles.inputBox}>
-            <Feather name="user" size={18} color={Colors.gray} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email or phone (+91…)"
-              placeholderTextColor={Colors.gray}
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={identifier}
-              onChangeText={setIdentifier}
-            />
-          </View>
+            <View style={styles.inputBox}>
+              <Feather name="user" size={18} color={Colors.gray} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email or phone (+91…)"
+                placeholderTextColor={Colors.gray}
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={identifier}
+                onChangeText={setIdentifier}
+              />
+            </View>
 
-          <View style={styles.inputBox}>
-            <Feather name="lock" size={18} color={Colors.gray} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={Colors.gray}
-              secureTextEntry={!show}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <Pressable onPress={() => setShow((s) => !s)}>
-              <Feather name={show ? "eye-off" : "eye"} size={18} color={Colors.gray} />
+            <View style={styles.inputBox}>
+              <Feather name="lock" size={18} color={Colors.gray} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor={Colors.gray}
+                secureTextEntry={!show}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <Pressable onPress={() => setShow((s) => !s)}>
+                <Feather
+                  name={show ? "eye-off" : "eye"}
+                  size={18}
+                  color={Colors.gray}
+                />
+              </Pressable>
+            </View>
+
+            <Pressable
+              style={styles.loginBtn}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginText}>Log in</Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={styles.otpLink}
+              onPress={() => router.replace("/(auth)/PhoneScreen")}
+            >
+              <Text style={styles.otpLinkText}>Use OTP instead</Text>
             </Pressable>
           </View>
-
-          <Pressable style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Log in</Text>}
-          </Pressable>
-
-          <Pressable style={styles.otpLink} onPress={() => router.replace("/(auth)/PhoneScreen")}>
-            <Text style={styles.otpLinkText}>Use OTP instead</Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
