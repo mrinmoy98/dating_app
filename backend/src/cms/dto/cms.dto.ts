@@ -38,6 +38,19 @@ export class UpdatePageDto {
   @IsOptional() @IsBoolean() is_published?: boolean;
 }
 
+// ---------------- Languages ----------------
+export class CreateLanguageDto {
+  @IsString() @MinLength(1) @MaxLength(60) title: string;
+  @IsOptional() @IsNumber() sequence?: number;
+  @IsOptional() @IsBoolean() is_active?: boolean;
+}
+
+export class UpdateLanguageDto {
+  @IsOptional() @IsString() @MaxLength(60) title?: string;
+  @IsOptional() @IsNumber() sequence?: number;
+  @IsOptional() @IsBoolean() is_active?: boolean;
+}
+
 // ---------------- Settings ----------------
 export class UpdateSettingsDto {
   @IsOptional() @IsString() @MaxLength(120) site_name?: string;

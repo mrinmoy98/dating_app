@@ -71,6 +71,12 @@ export const api = {
   updatePage: (id, p) => data(`/admin/cms/pages/${id}`, { method: "PATCH", body: p }),
   deletePage: (id) => data(`/admin/cms/pages/${id}`, { method: "DELETE" }),
 
+  // ---- CMS: languages ----
+  listLanguages: () => data("/admin/cms/languages"),
+  createLanguage: (l) => data("/admin/cms/languages", { method: "POST", body: l }),
+  updateLanguage: (id, l) => data(`/admin/cms/languages/${id}`, { method: "PATCH", body: l }),
+  deleteLanguage: (id) => data(`/admin/cms/languages/${id}`, { method: "DELETE" }),
+
   // ---- CMS: settings ----
   getSettings: () => data("/admin/cms/settings"),
   updateSettings: (s) => data("/admin/cms/settings", { method: "PUT", body: s }),

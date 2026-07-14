@@ -98,6 +98,46 @@ export interface SwipeResult {
   match?: MatchUser;
 }
 
+// ---------------- CMS ----------------
+export interface Language {
+  _id: string;
+  title: string;
+  sequence: number;
+  is_active: boolean;
+}
+
+export interface Banner {
+  _id: string;
+  title: string;
+  image_url: string;
+  link_url: string;
+  position: number;
+  is_active: boolean;
+}
+
+export interface CmsPage {
+  _id: string;
+  slug: string;
+  title: string;
+  content: string;
+  is_published: boolean;
+}
+
+export interface SiteSettings {
+  site_name: string;
+  tagline: string;
+  logo_url: string;
+  support_email: string;
+  support_phone: string;
+  facebook: string;
+  instagram: string;
+  twitter: string;
+  android_app_url: string;
+  ios_app_url: string;
+  min_age: number;
+  maintenance_mode: boolean;
+}
+
 export interface ConnectionUser {
   id: string;
   firstName: string | null;

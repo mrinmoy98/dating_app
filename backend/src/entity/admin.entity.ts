@@ -6,7 +6,7 @@ export const AdminSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true }, // bcrypt hash
+    password: { type: String, required: true },
     role: { type: String, enum: ['admin', 'superadmin'], default: 'admin' },
     is_active: { type: Boolean, default: true },
     last_login: { type: Date, default: null },

@@ -4,6 +4,7 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Users from "./pages/Users.jsx";
 import Banners from "./pages/Banners.jsx";
+import Languages from "./pages/Languages.jsx";
 import Pages from "./pages/Pages.jsx";
 import Settings from "./pages/Settings.jsx";
 
@@ -11,6 +12,7 @@ const NAV = [
   { key: "dashboard", label: "Dashboard", icon: "📊" },
   { key: "users", label: "All Users", icon: "👥" },
   { key: "banners", label: "Banners", icon: "🖼️" },
+  { key: "languages", label: "Languages", icon: "🌐" },
   { key: "pages", label: "Pages (Privacy/Terms)", icon: "📄" },
   { key: "settings", label: "Site Settings", icon: "⚙️" },
 ];
@@ -80,6 +82,7 @@ export default function App() {
           {view === "dashboard" && <Dashboard />}
           {view === "users" && <Users />}
           {view === "banners" && <Banners />}
+          {view === "languages" && <Languages />}
           {view === "pages" && <Pages />}
           {view === "settings" && <Settings />}
         </div>

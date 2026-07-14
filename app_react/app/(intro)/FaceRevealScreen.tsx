@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
+import { FieldError, FieldLabel } from "../components/Shared/FormField";
 import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,6 +14,7 @@ export default function FaceRevealScreen() {
   const router = useRouter();
   const { data, registrationToken, setAuth } = useRegistration();
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [images, setImages] = useState<(string | null)[]>([
     null,
@@ -23,15 +25,16 @@ export default function FaceRevealScreen() {
 
   const handleFinish = async () => {
     if (!registrationToken) {
-      Alert.alert("Session expired", "Please verify your phone number again.");
+      setError("Session expired. Please verify your phone number again.");
       router.replace("/(auth)/PhoneScreen");
       return;
     }
     const uris = images.filter((u): u is string => !!u);
     if (uris.length < 1) {
-      Alert.alert("Photo required", "Please add at least one photo to continue.");
+      setError("This field is required — add at least one photo");
       return;
     }
+    setError(null);
     try {
       setSubmitting(true);
       const photoUrls = await api.uploadPhotos(uris, registrationToken);
@@ -49,7 +52,7 @@ export default function FaceRevealScreen() {
       setAuth(res.token, res.user);
       router.replace("/(tabs)/Discover");
     } catch (e: any) {
-      Alert.alert("Could not complete registration", e?.message ?? "Please try again.");
+      setError(e?.message ?? "Could not complete registration. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -93,13 +96,17 @@ export default function FaceRevealScreen() {
       <View style={styles.container}>
         <ProgressBar />
         <Text style={styles.title}>Time for a face reveal!</Text>
+        <FieldLabel required>Photos</FieldLabel>
 
         <View style={styles.grid}>
           {images.map((img, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.imageBox}
-              onPress={() => pickImage(index)}
+              style={[styles.imageBox, !!error && !img && styles.imageBoxError]}
+              onPress={() => {
+                setError(null);
+                pickImage(index);
+              }}
             >
               {img ? (
                 <Image source={{ uri: img }} style={styles.image} />
@@ -109,6 +116,8 @@ export default function FaceRevealScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        <FieldError>{error}</FieldError>
 
         <View style={styles.guidelines}>
           {guidelines.map((tip, i) => (
@@ -152,6 +161,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 15,
+  },
+  imageBoxError: {
+    borderWidth: 1.5,
+    borderColor: "#ef4444",
+    backgroundColor: "#fff5f5",
   },
   image: {
     width: "100%",

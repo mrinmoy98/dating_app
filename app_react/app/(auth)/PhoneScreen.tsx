@@ -5,19 +5,26 @@ import { ActivityIndicator, Alert, Image, Keyboard, KeyboardAvoidingView, Platfo
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
 import Button from "../components/Shared/Button";
+import { FieldError, FieldLabel } from "../components/Shared/FormField";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PhoneScreen() {
   const router = useRouter();
   const { setPhone } = useRegistration();
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleGetOtp = async () => {
-    if (phoneNumber.trim().length < 10) {
-      Alert.alert("Invalid number", "Please enter a valid 10-digit phone number.");
+    if (!phoneNumber.trim()) {
+      setError("This field is required");
       return;
     }
+    if (phoneNumber.trim().length < 10) {
+      setError("Please enter a valid 10-digit phone number");
+      return;
+    }
+    setError(null);
     const fullPhone = `+91${phoneNumber.trim()}`;
     try {
       setLoading(true);
@@ -29,7 +36,7 @@ export default function PhoneScreen() {
       }
       router.push("/(auth)/OtpScreen");
     } catch (e: any) {
-      Alert.alert("Could not send OTP", e?.message ?? "Please try again.");
+      setError(e?.message ?? "Could not send OTP. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -53,7 +60,8 @@ export default function PhoneScreen() {
                 connections.
               </Text>
 
-              <View style={styles.inputContainer}>
+              <FieldLabel required>Phone number</FieldLabel>
+              <View style={[styles.inputContainer, !!error && styles.inputContainerError]}>
                 <View style={styles.countryCode}>
                   <Image
                     source={{
@@ -66,12 +74,18 @@ export default function PhoneScreen() {
                 <TextInput
                   style={styles.phoneInput}
                   placeholder="Enter phone number"
+                  placeholderTextColor="#999"
                   keyboardType="number-pad"
                   maxLength={10}
                   value={phoneNumber}
-                  onChangeText={setPhoneNumber}
+                  onChangeText={(t) => {
+                    setPhoneNumber(t);
+                    setError(null);
+                  }}
                 />
               </View>
+              <FieldError>{error}</FieldError>
+              <View style={{ height: 20 }} />
 
               <View style={styles.infoBox}>
                 <Ionicons name="information-circle-outline" size={20} color="#555" />
@@ -137,7 +151,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#ddd",
     alignItems: "center",
-    marginBottom: 25,
+  },
+  inputContainerError: {
+    borderColor: "#ef4444",
+    borderBottomWidth: 2,
   },
   countryCode: {
     flexDirection: "row",

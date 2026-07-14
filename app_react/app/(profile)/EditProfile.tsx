@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
+import { MAX_LANGUAGES, useLanguages } from "../../hooks/useLanguages";
 import { api, type Gender } from "../../lib/api";
 import { useAppDispatch } from "../../store/hooks";
 import { setUser } from "../../store/slices/authSlice";
@@ -30,11 +31,6 @@ const GENDERS: Gender[] = ["Male", "Female", "Other"];
 const RELIGIONS = [
   "Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain",
   "Jewish", "Parsi", "Spiritual", "Atheist", "Prefer not to say", "Other",
-];
-const LANGUAGES = [
-  "English", "Hindi", "Bengali", "Tamil", "Telugu", "Marathi", "Gujarati",
-  "Kannada", "Malayalam", "Punjabi", "Urdu", "Odia", "Assamese", "Nepali",
-  "Spanish", "French", "German", "Arabic", "Chinese", "Japanese",
 ];
 const DIETS = ["Vegetarian", "Non-vegetarian", "Vegan", "Eggetarian", "Jain"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
@@ -183,6 +179,8 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { user, authToken, setAuth } = useRegistration();
   const dispatch = useAppDispatch();
+  // Language options are managed by the super admin (CMS → Languages).
+  const { languages: languageOptions } = useLanguages();
 
   // ---- committed profile state ----
   const [firstName, setFirstName] = useState<string>(user?.first_name ?? "");
@@ -343,7 +341,17 @@ export default function EditProfileScreen() {
   };
 
   const toggleLang = (lang: string) => {
-    setLangDraft((prev) => (prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]));
+    setLangDraft((prev) => {
+      if (prev.includes(lang)) return prev.filter((l) => l !== lang);
+      if (prev.length >= MAX_LANGUAGES) {
+        Alert.alert(
+          "Limit reached",
+          `You can select up to ${MAX_LANGUAGES} languages. Remove one to add another.`,
+        );
+        return prev;
+      }
+      return [...prev, lang];
+    });
   };
 
   const saveLifestyle = () => {
@@ -734,9 +742,11 @@ export default function EditProfileScreen() {
 
             {/* Languages multi-select */}
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Languages you speak (select multiple)</Text>
+              <Text style={styles.fieldLabel}>
+                Languages you speak (up to {MAX_LANGUAGES}) — {langDraft.length}/{MAX_LANGUAGES}
+              </Text>
               <View style={styles.chipRow}>
-                {LANGUAGES.map((lang) => {
+                {languageOptions.map((lang) => {
                   const active = langDraft.includes(lang);
                   return (
                     <Pressable key={lang} onPress={() => toggleLang(lang)} style={[styles.chip, active && styles.chipActive]}>

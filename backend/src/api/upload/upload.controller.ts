@@ -37,7 +37,7 @@ function publicUrl(req: Request, filename: string) {
 @ApiTags('User Profile')
 @ApiBearerAuth('JWT')
 @Controller('api/upload')
-@UseGuards(JwtAuthGuard) // any valid JWT (registration token during onboarding, or auth token)
+@UseGuards(JwtAuthGuard)
 export class UploadController {
   @Post('photos')
   @ApiConsumes('multipart/form-data')
@@ -45,7 +45,7 @@ export class UploadController {
   @UseInterceptors(
     FilesInterceptor('files', 6, {
       storage: storageFor(),
-      limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB per file
+      limits: { fileSize: 8 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         if (!IMAGE_EXT.test(file.originalname)) {
           return cb(new BadRequestException('Only image files are allowed'), false);
@@ -66,7 +66,7 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: storageFor(),
-      limits: { fileSize: 60 * 1024 * 1024 }, // 60 MB
+      limits: { fileSize: 60 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         if (!VIDEO_EXT.test(file.originalname)) {
           return cb(new BadRequestException('Only video files are allowed'), false);

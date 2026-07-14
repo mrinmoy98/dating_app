@@ -27,8 +27,10 @@ import { CmsService } from './cms.service';
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|svg|avif)$/i;
 import {
   CreateBannerDto,
+  CreateLanguageDto,
   CreatePageDto,
   UpdateBannerDto,
+  UpdateLanguageDto,
   UpdatePageDto,
   UpdateSettingsDto,
 } from './dto/cms.dto';
@@ -111,6 +113,28 @@ export class AdminCmsController {
   @ApiOperation({ summary: 'Delete a CMS page' })
   deletePage(@Param('id') id: string) {
     return this.cms.deletePage(id);
+  }
+
+  // ---- Languages ----
+  @Get('languages')
+  @ApiOperation({ summary: 'List all languages' })
+  listLanguages() {
+    return this.cms.listLanguages();
+  }
+  @Post('languages')
+  @ApiOperation({ summary: 'Create a language' })
+  createLanguage(@Body() dto: CreateLanguageDto) {
+    return this.cms.createLanguage(dto);
+  }
+  @Patch('languages/:id')
+  @ApiOperation({ summary: 'Update a language' })
+  updateLanguage(@Param('id') id: string, @Body() dto: UpdateLanguageDto) {
+    return this.cms.updateLanguage(id, dto);
+  }
+  @Delete('languages/:id')
+  @ApiOperation({ summary: 'Delete a language' })
+  deleteLanguage(@Param('id') id: string) {
+    return this.cms.deleteLanguage(id);
   }
 
   // ---- Settings ----

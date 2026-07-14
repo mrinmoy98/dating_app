@@ -13,7 +13,6 @@ export class SocialService {
     @InjectModel('Match') private readonly matchModel: Model<Match>,
   ) {}
 
-  /** Full public profile of a user (for the match/profile view). */
   async getProfile(viewerId: string, targetId: string) {
     const user = await this.userModel.findById(targetId);
     if (!user) throw new NotFoundException('User not found');
@@ -52,7 +51,6 @@ export class SocialService {
     return { following: false };
   }
 
-  /** Users the current user follows. */
   async following(userId: string) {
     const rows = await this.followModel
       .find({ follower: userId })
@@ -61,7 +59,6 @@ export class SocialService {
     return rows.map((r) => this.shape(r.following as unknown as User)).filter(Boolean);
   }
 
-  /** Users who follow the current user. */
   async followers(userId: string) {
     const rows = await this.followModel
       .find({ following: userId })
@@ -70,7 +67,6 @@ export class SocialService {
     return rows.map((r) => this.shape(r.follower as unknown as User)).filter(Boolean);
   }
 
-  // -------- helpers --------
   private shape(u: User | null) {
     if (!u) return null;
     const primary = u.photos?.find((p) => p.is_primary) ?? u.photos?.[0];

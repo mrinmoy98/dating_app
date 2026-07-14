@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BannerSchema } from '../entity/banner.entity';
+import { LanguageSchema } from '../entity/language.entity';
 import { PageSchema } from '../entity/page.entity';
 import { SettingSchema } from '../entity/setting.entity';
 import { AdminCmsController } from './admin-cms.controller';
@@ -17,6 +18,7 @@ import { PublicCmsController } from './public-cms.controller';
       { name: 'Banner', schema: BannerSchema },
       { name: 'Page', schema: PageSchema },
       { name: 'Setting', schema: SettingSchema },
+      { name: 'Language', schema: LanguageSchema },
     ]),
   ],
   controllers: [AdminCmsController, PublicCmsController],

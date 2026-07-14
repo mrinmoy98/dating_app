@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
 import { api } from '../../lib/api';
+import { FieldError } from '../components/Shared/FormField';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OtpScreen() {
@@ -20,6 +21,7 @@ export default function OtpScreen() {
   const { phone, setRegistrationToken, setAuth } = useRegistration();
   const [timer, setTimer] = useState(60);
   const [otp, setOtp] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -37,7 +39,11 @@ export default function OtpScreen() {
   }, []);
 
   const handleContinue = async () => {
-    if (otp.length !== 4) return;
+    if (otp.length !== 4) {
+      setError('This field is required');
+      return;
+    }
+    setError(null);
     try {
       setLoading(true);
       const res = await api.verifyOtp(phone, otp);
@@ -51,7 +57,7 @@ export default function OtpScreen() {
         router.replace('/(tabs)/Discover');
       }
     } catch (e: any) {
-      Alert.alert('Verification failed', e?.message ?? 'Incorrect OTP.');
+      setError(e?.message ?? 'Incorrect OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -116,6 +122,7 @@ export default function OtpScreen() {
                   style={[
                     styles.otpBox,
                     otp.length === index && styles.otpBoxActive,
+                    !!error && styles.otpBoxError,
                   ]}
                 >
                   <Text style={styles.otpChar}>
@@ -129,9 +136,10 @@ export default function OtpScreen() {
               ref={inputRef}
               style={styles.hiddenInput}
               value={otp}
-              onChangeText={(text) =>
-                setOtp(text.replace(/[^0-9]/g, "").slice(0, 4))
-              }
+              onChangeText={(text) => {
+                setOtp(text.replace(/[^0-9]/g, "").slice(0, 4));
+                setError(null);
+              }}
               keyboardType="number-pad"
               maxLength={4}
               autoFocus
@@ -140,6 +148,10 @@ export default function OtpScreen() {
               textContentType="oneTimeCode"
               autoComplete="sms-otp"
             />
+
+            <View style={{ alignItems: "center" }}>
+              <FieldError>{error}</FieldError>
+            </View>
           </View>
 
           <Text style={styles.timerText}>
@@ -240,6 +252,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  otpBoxError: {
+    borderColor: '#ef4444',
+  },
   otpBoxActive: {
     borderColor: "#8d2561",
   },

@@ -1,4 +1,5 @@
 import { authApi } from "./auth";
+import { cmsApi } from "./cms";
 import { discoverApi } from "./discover";
 import { matchApi } from "./match";
 import { profileApi } from "./profile";
@@ -12,6 +13,7 @@ export { profileApi } from "./profile";
 export { discoverApi } from "./discover";
 export { matchApi } from "./match";
 export { socialApi } from "./social";
+export { cmsApi } from "./cms";
 export { uploadApi } from "./upload";
 export { http } from "./http";
 export { ENDPOINTS } from "./endpoints";
@@ -28,5 +30,6 @@ export const api = {
   ...discoverApi,
   ...matchApi,
   ...socialApi,
+  ...cmsApi,
   ...uploadApi,
 };

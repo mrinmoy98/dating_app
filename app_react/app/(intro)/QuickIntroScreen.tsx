@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,6 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
+import { FieldError, FieldLabel } from "../components/Shared/FormField";
 import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
 
@@ -37,6 +37,8 @@ const EIGHTEEN_YEARS_AGO = new Date(
   new Date().getDate(),
 );
 
+type Errors = { firstName?: string; dob?: string; gender?: string; location?: string };
+
 export default function QuickIntroScreen() {
   const router = useRouter();
   const { patch } = useRegistration();
@@ -48,7 +50,7 @@ export default function QuickIntroScreen() {
   const [gender, setGender] = useState<string | undefined>();
 
   // address
-  const [location, setLocation] = useState(""); // locality / area
+  const [location, setLocation] = useState("");
   const [city, setCity] = useState("");
   const [stateName, setStateName] = useState("");
   const [country, setCountry] = useState("");
@@ -57,17 +59,24 @@ export default function QuickIntroScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [locating, setLocating] = useState(false);
 
+  const [errors, setErrors] = useState<Errors>({});
+  const clear = (k: keyof Errors) => setErrors((e) => ({ ...e, [k]: undefined }));
+
   const onChangeDate = (_event: any, selected?: Date) => {
     if (Platform.OS === "android") setShowPicker(false);
-    if (selected) setDob(selected);
+    if (selected) {
+      setDob(selected);
+      clear("dob");
+    }
   };
 
   const useMyLocation = async () => {
+    clear("location");
     try {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission needed", "Allow location access to auto-fill your address.");
+        setErrors((e) => ({ ...e, location: "Location permission denied. You can type your address instead." }));
         return;
       }
       const pos = await Location.getCurrentPositionAsync({});
@@ -85,31 +94,28 @@ export default function QuickIntroScreen() {
         setCountry(pl.country ?? "");
         setPostal(pl.postalCode ?? "");
       }
-      Alert.alert("Location captured ✅", "Your address was auto-filled. You can edit it.");
     } catch (e: any) {
-      Alert.alert("Could not get location", e?.message ?? "Please try again.");
+      setErrors((err) => ({ ...err, location: e?.message ?? "Could not get your location." }));
     } finally {
       setLocating(false);
     }
   };
 
   const handleNext = () => {
-    if (!firstName.trim()) {
-      Alert.alert("First name required", "Please enter your first name.");
+    const next: Errors = {};
+    if (!firstName.trim()) next.firstName = "This field is required";
+    if (!dob) next.dob = "This field is required";
+    if (!gender) next.gender = "This field is required";
+
+    if (Object.keys(next).length > 0) {
+      setErrors(next); // inline red errors — no popups
       return;
     }
-    if (!dob) {
-      Alert.alert("Date of birth required", "Please pick your date of birth.");
-      return;
-    }
-    if (!gender) {
-      Alert.alert("Gender required", "Please select your gender.");
-      return;
-    }
+
     patch({
       first_name: firstName.trim(),
       last_name: lastName.trim() || undefined,
-      dob: toIso(dob),
+      dob: toIso(dob as Date),
       gender: gender as any,
       location: location.trim() || undefined,
       city: city.trim() || undefined,
@@ -123,22 +129,53 @@ export default function QuickIntroScreen() {
   };
 
   return (
-    // <SafeAreaView style={styles.safe}>
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <ProgressBar />
         <Text style={styles.title}>Let's start with a{"\n"}quick intro</Text>
 
-        {/* Name */}
-        <TextInput style={styles.input} placeholder="First name *" placeholderTextColor="#888" value={firstName} onChangeText={setFirstName} />
-        <TextInput style={styles.input} placeholder="Last name (optional)" placeholderTextColor="#888" value={lastName} onChangeText={setLastName} />
+        {/* First name */}
+        <View style={styles.field}>
+          <FieldLabel required>First name</FieldLabel>
+          <TextInput
+            style={[styles.input, errors.firstName && styles.inputError]}
+            placeholder="Your first name"
+            placeholderTextColor="#999"
+            value={firstName}
+            onChangeText={(t) => {
+              setFirstName(t);
+              clear("firstName");
+            }}
+          />
+          <FieldError>{errors.firstName}</FieldError>
+        </View>
+
+        {/* Last name */}
+        <View style={styles.field}>
+          <FieldLabel>Last name</FieldLabel>
+          <TextInput
+            style={styles.input}
+            placeholder="Optional"
+            placeholderTextColor="#999"
+            value={lastName}
+            onChangeText={setLastName}
+          />
+        </View>
 
         {/* DOB */}
-        <TouchableOpacity style={styles.input   } activeOpacity={0.7} onPress={() => setShowPicker(true)}>
-          <Text style={{ fontSize: 16, color: dob ? "#000" : "#888" }}>
-            {dob ? formatDate(dob) : "Date of birth *  (DD / MM / YYYY)"}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.field}>
+          <FieldLabel required>Date of birth</FieldLabel>
+          <TouchableOpacity
+            style={[styles.input, errors.dob && styles.inputError]}
+            activeOpacity={0.7}
+            onPress={() => setShowPicker(true)}
+          >
+            <Text style={{ fontSize: 16, color: dob ? "#000" : "#999" }}>
+              {dob ? formatDate(dob) : "DD / MM / YYYY"}
+            </Text>
+          </TouchableOpacity>
+          <FieldError>{errors.dob}</FieldError>
+        </View>
         {showPicker && (
           <DateTimePicker
             value={dob ?? EIGHTEEN_YEARS_AGO}
@@ -156,47 +193,75 @@ export default function QuickIntroScreen() {
         )}
 
         {/* Gender */}
-        <Text style={styles.sectionLabel}>Gender *</Text>
-        <View style={styles.genderRow}>
-          {["Male", "Female", "Other"].map((item) => (
-            <TouchableOpacity
-              key={item}
-              style={[styles.genderBtn, gender === item && styles.genderBtnSelected]}
-              onPress={() => setGender(item)}
-            >
-              <Text style={[styles.genderText, gender === item && styles.genderTextSelected]}>{item}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.field}>
+          <FieldLabel required>Gender</FieldLabel>
+          <View style={styles.genderRow}>
+            {["Male", "Female", "Other"].map((item) => (
+              <TouchableOpacity
+                key={item}
+                style={[
+                  styles.genderBtn,
+                  gender === item && styles.genderBtnSelected,
+                  errors.gender && styles.genderBtnError,
+                ]}
+                onPress={() => {
+                  setGender(item);
+                  clear("gender");
+                }}
+              >
+                <Text style={[styles.genderText, gender === item && styles.genderTextSelected]}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <FieldError>{errors.gender}</FieldError>
         </View>
 
-        {/* Address */}
-        <Text style={styles.sectionLabel}>Address</Text>
+        {/* Address (all optional) */}
+        <FieldLabel style={styles.sectionLabel}>Address</FieldLabel>
         <TouchableOpacity style={styles.locationBtn} onPress={useMyLocation} disabled={locating} activeOpacity={0.8}>
           {locating ? <ActivityIndicator color="#8d2561" /> : <Feather name="map-pin" size={18} color="#8d2561" />}
           <Text style={styles.locationBtnText}>
             {latitude != null ? "Update current location" : "Use my current location"}
           </Text>
         </TouchableOpacity>
-        {latitude != null && <Text style={styles.coordNote}>📍 Coordinates saved — helps find matches near you.</Text>}
+        <FieldError>{errors.location}</FieldError>
+        {latitude != null && (
+          <Text style={styles.coordNote}>📍 Location captured — helps find matches near you.</Text>
+        )}
 
-        <TextInput style={styles.input} placeholder="Area / locality (optional)" placeholderTextColor="#888" value={location} onChangeText={setLocation} />
-        <View style={styles.row}>
-          <TextInput style={[styles.input, styles.half]} placeholder="City" placeholderTextColor="#888" value={city} onChangeText={setCity} />
-          <TextInput style={[styles.input, styles.half]} placeholder="State" placeholderTextColor="#888" value={stateName} onChangeText={setStateName} />
+        <View style={styles.field}>
+          <FieldLabel>Area / locality</FieldLabel>
+          <TextInput style={styles.input} placeholder="Optional" placeholderTextColor="#999" value={location} onChangeText={setLocation} />
         </View>
         <View style={styles.row}>
-          <TextInput style={[styles.input, styles.half]} placeholder="Country" placeholderTextColor="#888" value={country} onChangeText={setCountry} />
-          <TextInput style={[styles.input, styles.half]} placeholder="PIN / ZIP" placeholderTextColor="#888" keyboardType="number-pad" value={postal} onChangeText={setPostal} />
+          <View style={[styles.field, styles.half]}>
+            <FieldLabel>City</FieldLabel>
+            <TextInput style={styles.input} placeholder="City" placeholderTextColor="#999" value={city} onChangeText={setCity} />
+          </View>
+          <View style={[styles.field, styles.half]}>
+            <FieldLabel>State</FieldLabel>
+            <TextInput style={styles.input} placeholder="State" placeholderTextColor="#999" value={stateName} onChangeText={setStateName} />
+          </View>
+        </View>
+        <View style={styles.row}>
+          <View style={[styles.field, styles.half]}>
+            <FieldLabel>Country</FieldLabel>
+            <TextInput style={styles.input} placeholder="Country" placeholderTextColor="#999" value={country} onChangeText={setCountry} />
+          </View>
+          <View style={[styles.field, styles.half]}>
+            <FieldLabel>PIN / ZIP</FieldLabel>
+            <TextInput style={styles.input} placeholder="PIN" placeholderTextColor="#999" keyboardType="number-pad" value={postal} onChangeText={setPostal} />
+          </View>
         </View>
 
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={20} color="#555" />
           <Text style={styles.infoText}>
-            Fields marked * are required. Address helps show you people nearby — you can edit it anytime.
+            Fields marked <Text style={styles.star}>*</Text> are required. Address helps show you people nearby.
           </Text>
         </View>
 
-        <View style={{ height: 90 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       <IntroNav onNext={handleNext} />
@@ -205,23 +270,27 @@ export default function QuickIntroScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff" },
-  container: { padding: 24, flexGrow: 1 },
+  container: { padding: 24, paddingTop: 24, backgroundColor: "#fff", flexGrow: 1 },
   title: { fontSize: 26, fontWeight: "700", color: "#111", marginBottom: 24 },
-  input: {
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
-    fontSize: 16,
-    paddingVertical: 12,
-    marginBottom: 20,
-    color: "#000",
-  },
+  field: { marginBottom: 18 },
   row: { flexDirection: "row", gap: 14 },
   half: { flex: 1 },
-  sectionLabel: { fontSize: 14, fontWeight: "700", color: "#333", marginBottom: 12, marginTop: 4 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: "#000",
+    backgroundColor: "#fafafa",
+  },
+  inputError: { borderColor: "#ef4444", backgroundColor: "#fff5f5" },
   doneText: { color: "#8d2561", fontWeight: "700", fontSize: 16, textAlign: "right", marginBottom: 16 },
-  genderRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
-  genderBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20, borderWidth: 1, borderColor: "#ccc" },
+  sectionLabel: { fontSize: 15, color: "#111", marginTop: 4 },
+  genderRow: { flexDirection: "row", gap: 12 },
+  genderBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20, borderWidth: 1, borderColor: "#ddd" },
+  genderBtnError: { borderColor: "#ef4444" },
   genderBtnSelected: { backgroundColor: "#8d2561", borderColor: "#8d2561" },
   genderText: { color: "#000", fontWeight: "500" },
   genderTextSelected: { color: "#fff" },
@@ -235,10 +304,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     backgroundColor: "#fbe9f3",
-    marginBottom: 10,
   },
   locationBtnText: { color: "#8d2561", fontWeight: "700", fontSize: 14 },
-  coordNote: { fontSize: 12, color: "#8d2561", marginBottom: 14 },
+  coordNote: { fontSize: 12, color: "#8d2561", marginTop: 8 },
   infoBox: {
     flexDirection: "row",
     backgroundColor: "#f5f5f5",
@@ -249,13 +317,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   infoText: { flex: 1, fontSize: 13, color: "#333" },
-  nextBtn: {
-    backgroundColor: "#8d2561",
-    borderRadius: 30,
-    padding: 16,
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    elevation: 5,
-  },
+  star: { color: "#ef4444", fontWeight: "700" },
 });

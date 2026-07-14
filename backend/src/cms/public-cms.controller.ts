@@ -24,6 +24,13 @@ export class PublicCmsController {
   }
 
   @Public()
+  @Get('languages')
+  @ApiOperation({ summary: 'Active languages (for registration/profile)' })
+  languages() {
+    return this.cms.activeLanguages();
+  }
+
+  @Public()
   @Get('pages/:slug')
   @ApiOperation({ summary: 'A published page (e.g. privacy-policy, terms-of-service)' })
   page(@Param('slug') slug: string) {

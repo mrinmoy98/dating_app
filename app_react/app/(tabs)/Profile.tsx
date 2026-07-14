@@ -2,10 +2,11 @@ import Colors from '@/data/Colors';
 import { mockCurrentUser, mockUserPhotos } from '@/utils/mockData';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
-import { Image, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRegistration } from '../../context/RegistrationContext';
 import { api } from '../../lib/api';
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
   const [remote, setRemote] = useState<any | null>(ctxUser);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null); // null = viewer closed
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Refresh the profile from the backend whenever we have an auth token, and
   // push it into the store so every screen sees the latest data.
@@ -61,6 +63,35 @@ export default function ProfileScreen() {
     router.replace('/landing');
   };
 
+  /** Camera icon: pick a new photo (with crop), upload it, and make it the cover. */
+  const pickAndUploadPhoto = async () => {
+    if (!authToken) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true, // crop before upload
+      aspect: [3, 4],
+      quality: 0.9,
+    });
+    if (result.canceled) return;
+    try {
+      setUploadingPhoto(true);
+      const urls = await api.uploadPhotos([result.assets[0].uri], authToken);
+      const existing: string[] = (remote?.photos ?? []).map((p: any) => p.url);
+      // New photo becomes the cover; keep at most 6 photos total.
+      const updated = await api.updateProfile(
+        { photos: [...urls, ...existing].slice(0, 6) },
+        authToken,
+      );
+      setRemote(updated);
+      dispatch(setUser(updated));
+      Alert.alert('Photo uploaded ✅', 'Your new photo is now your cover picture.');
+    } catch (e: any) {
+      Alert.alert('Upload failed', e?.message ?? 'Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const showPrev = () =>
     setViewerIndex((i) => (i == null ? i : (i - 1 + photos.length) % photos.length));
   const showNext = () =>
@@ -68,11 +99,16 @@ export default function ProfileScreen() {
 
   // ---- View model: real user when available, else mock (dev preview) ----
   const backend = remote;
+  // Real photos only when logged in — never show mock images on a real account.
   const photos: string[] = backend?.photos?.length
     ? backend.photos.map((p: any) => p.url)
-    : mockUserPhotos.map((p) => p.url);
-  const primaryPhoto = photos[0] ?? mockCurrentUser.photoUrl;
+    : authToken
+      ? []
+      : mockUserPhotos.map((p) => p.url);
+  const primaryPhoto: string | null = photos[0] ?? (authToken ? null : mockCurrentUser.photoUrl);
   const firstName = backend?.first_name ?? mockCurrentUser.firstName;
+  const lastName = backend?.last_name ?? '';
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
   const age = ageFromDob(backend?.dob) ?? mockCurrentUser.age;
   const location = backend?.location ?? mockCurrentUser.location;
   const videoUrl: string | null = backend?.video_url ?? null;
@@ -107,12 +143,28 @@ export default function ProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
+            {/* Tap the photo → full-screen viewer */}
             <Pressable onPress={() => photos.length > 0 && setViewerIndex(0)}>
-              <Image source={{ uri: primaryPhoto }} style={styles.profileImage} />
+              {primaryPhoto ? (
+                <Image source={{ uri: primaryPhoto }} style={styles.profileImage} />
+              ) : (
+                <View style={[styles.profileImage, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarInitial}>
+                    {(firstName || '?').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              {uploadingPhoto && (
+                <View style={styles.uploadOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
             </Pressable>
+            {/* Camera icon → pick, crop & upload a new photo */}
             <Pressable
               style={styles.editPhotoButton}
-              onPress={() => router.push('/(profile)/EditProfile')}
+              onPress={pickAndUploadPhoto}
+              disabled={uploadingPhoto}
             >
               <Feather name="camera" size={20} color="white" />
             </Pressable>
@@ -121,7 +173,7 @@ export default function ProfileScreen() {
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
               <Typography variant="title" style={styles.profileName}>
-                {firstName}
+                {fullName}
                 {age ? `, ${age}` : ''}
               </Typography>
             </View>
@@ -335,6 +387,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'white',
+  },
+  avatarPlaceholder: {
+    backgroundColor: Colors.lightPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: 44,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  uploadOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profileInfo: {
     alignItems: 'center',

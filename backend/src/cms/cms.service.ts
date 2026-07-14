@@ -2,12 +2,15 @@ import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Banner } from '../entity/banner.entity';
+import { Language } from '../entity/language.entity';
 import { Page } from '../entity/page.entity';
 import { Setting } from '../entity/setting.entity';
 import {
   CreateBannerDto,
+  CreateLanguageDto,
   CreatePageDto,
   UpdateBannerDto,
+  UpdateLanguageDto,
   UpdatePageDto,
   UpdateSettingsDto,
 } from './dto/cms.dto';
@@ -18,6 +21,7 @@ export class CmsService implements OnModuleInit {
     @InjectModel('Banner') private readonly bannerModel: Model<Banner>,
     @InjectModel('Page') private readonly pageModel: Model<Page>,
     @InjectModel('Setting') private readonly settingModel: Model<Setting>,
+    @InjectModel('Language') private readonly languageModel: Model<Language>,
   ) {}
 
   /** Seed the global settings row + default legal pages on first boot. */
@@ -39,6 +43,46 @@ export class CmsService implements OnModuleInit {
         { upsert: true },
       );
     }
+
+    // Seed a starter language list if empty.
+    if ((await this.languageModel.countDocuments()) === 0) {
+      const langs = [
+        'English', 'Hindi', 'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati',
+        'Kannada', 'Malayalam', 'Punjabi', 'Urdu', 'Odia', 'Assamese', 'Nepali',
+      ];
+      await this.languageModel.insertMany(
+        langs.map((title, i) => ({ title, sequence: i, is_active: true, status: true })),
+      );
+    }
+  }
+
+  // ===================== Languages =====================
+  listLanguages() {
+    return this.languageModel.find().sort({ sequence: 1, title: 1 }).lean();
+  }
+  activeLanguages() {
+    return this.languageModel.find({ is_active: true }).sort({ sequence: 1, title: 1 }).lean();
+  }
+  createLanguage(dto: CreateLanguageDto) {
+    const isActive = dto.is_active !== false;
+    return this.languageModel.create({
+      title: dto.title.trim(),
+      sequence: dto.sequence ?? 0,
+      is_active: isActive,
+      status: isActive,
+    });
+  }
+  async updateLanguage(id: string, dto: UpdateLanguageDto) {
+    const set: Record<string, unknown> = { ...dto };
+    if (dto.is_active !== undefined) set.status = dto.is_active; // keep status in sync
+    const lang = await this.languageModel.findByIdAndUpdate(id, { $set: set }, { new: true });
+    if (!lang) throw new NotFoundException('Language not found');
+    return lang;
+  }
+  async deleteLanguage(id: string) {
+    const res = await this.languageModel.findByIdAndDelete(id);
+    if (!res) throw new NotFoundException('Language not found');
+    return { deleted: true, id };
   }
 
   // ===================== Banners =====================

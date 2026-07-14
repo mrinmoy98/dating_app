@@ -133,6 +133,7 @@ export class RegisterDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(3, { message: 'You can select up to 3 languages' })
   @IsString({ each: true })
   other_languages?: string[];
 
@@ -219,6 +220,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(3, { message: 'You can select up to 3 languages' })
   @IsString({ each: true })
   other_languages?: string[];
 

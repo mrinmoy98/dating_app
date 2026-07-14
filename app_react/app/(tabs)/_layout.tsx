@@ -8,42 +8,49 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.RASPBERRY_SIPS,
+        tabBarInactiveTintColor: "#9aa0ac",
         headerShown: false,
+        tabBarStyle: { height: 60, paddingBottom: 8, paddingTop: 6 },
+        tabBarLabelStyle: { fontSize: 10.5 },
       }}
     >
       <Tabs.Screen
         name="Discover"
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <Octicons name="flame" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Octicons name="flame" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="Reels"
+        options={{
+          tabBarIcon: ({ color, size }) => <Feather name="film" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="Live"
+        options={{
+          tabBarLabel: "Live",
+          tabBarIcon: ({ color, size }) => <Feather name="video" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="Matches"
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <Entypo name="heart-outlined" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Entypo name="heart-outlined" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="Messages"
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="message-circle" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="message-circle" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="Profile"
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <AntDesign name="user" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <AntDesign name="user" size={size} color={color} />,
         }}
       />
     </Tabs>
   );
 }
-
