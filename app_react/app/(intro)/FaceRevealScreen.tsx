@@ -7,6 +7,7 @@ import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
 import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FaceRevealScreen() {
   const router = useRouter();
@@ -88,36 +89,39 @@ export default function FaceRevealScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <View style={styles.container}>
         <ProgressBar />
-      <Text style={styles.title}>Time for a face reveal!</Text>
+        <Text style={styles.title}>Time for a face reveal!</Text>
 
-      <View style={styles.grid}>
-        {images.map((img, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.imageBox}
-            onPress={() => pickImage(index)}
-          >
-            {img ? (
-              <Image source={{ uri: img }} style={styles.image} />
-            ) : (
-              <MaterialIcons name="add" size={32} color="#aaa" />
-            )}
-          </TouchableOpacity>
-        ))}
+        <View style={styles.grid}>
+          {images.map((img, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.imageBox}
+              onPress={() => pickImage(index)}
+            >
+              {img ? (
+                <Image source={{ uri: img }} style={styles.image} />
+              ) : (
+                <MaterialIcons name="add" size={32} color="#aaa" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.guidelines}>
+          {guidelines.map((tip, i) => (
+            <Text key={i} style={styles.bullet}>
+              • {tip}
+            </Text>
+          ))}
+        </View>
+
+        <IntroNav onNext={handleFinish} loading={submitting} />
       </View>
+    </SafeAreaView>
 
-      <View style={styles.guidelines}>
-        {guidelines.map((tip, i) => (
-          <Text key={i} style={styles.bullet}>
-            • {tip}
-          </Text>
-        ))}
-      </View>
-
-      <IntroNav onNext={handleFinish} loading={submitting} />
-    </View>
   );
 }
 
@@ -126,7 +130,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 20,
-    paddingTop: 90,
+    paddingTop: 24,
 
     position: "relative",
   },
