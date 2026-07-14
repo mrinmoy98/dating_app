@@ -2,7 +2,6 @@ import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
@@ -13,9 +12,10 @@ import { Alert } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
 import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const motherTongues = [
-  'Konkani', 'Konyak', 'Korku', 'Koya', 'Kui', 'Kumaoni', 'Kurukh', 'Kutchi',
+  'Hindi', 'English', 'Konkani', 'Konyak', 'Korku', 'Koya', 'Kui', 'Kumaoni', 'Kurukh', 'Kutchi',
   'Lotha', 'Maithili', 'Malayalam', 'Malto', 'Manipuri', 'Mao', 'Marwari',
   'Meitei', 'Mishing', 'Mizo', 'Munda', 'Mundari', 'Nepali', 'Nishi', 'Oriya',
   'Phom', 'Punjabi', 'Rabha', 'Santali', 'Saurashtra', 'Savara', 'Sema',
@@ -23,7 +23,7 @@ const motherTongues = [
 ];
 
 const otherLanguages = [
-  'Hindi', 'English', 'Tamil', 'Telugu', 'Bengali', 'Kannada', 'Gujarati', 'Marathi',
+   'Tamil', 'Telugu', 'Bengali', 'Kannada', 'Gujarati', 'Marathi',
   'Assamese', 'Bodo', 'Kashmiri', 'Dogri', 'Sanskrit', 'Ladakhi', 'Others'
 ];
 
@@ -73,14 +73,16 @@ export default function LanguageSelection() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <View style={styles.container}>
       {/* <View style={styles.progressBar} /> */}
       <ProgressBar />
 
       <Text style={styles.heading}>What languages do{'\n'}you speak?</Text>
 
       <View style={styles.infoBox}>
-        <AntDesign name="infocirlceo" size={16} color="#555" />
+        {/* <AntDesign name="infocirlce" size={16} color="#555" /> */}
+        <AntDesign name="info-circle" size={16} color="#555" />
         <Text style={styles.infoText}>
           Select your mother tongue (mandatory)
         </Text>
@@ -121,6 +123,7 @@ export default function LanguageSelection() {
           router.push('/(intro)/HabitSelectionScreen');
         }}
       />
+      </View>
     </SafeAreaView>
   );
 }
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     backgroundColor: '#fff',
-    paddingTop:90
+    paddingTop:24
 
   },
   progressBar: {

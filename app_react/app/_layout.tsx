@@ -1,10 +1,11 @@
 import { Stack } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StatusBar, View } from "react-native";
 import { Provider } from "react-redux";
 import { store } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { bootstrapSession } from "../store/slices/authSlice";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 /**
  * Auth-aware navigator. `Stack.Protected` removes the screens whose guard is
@@ -73,7 +74,14 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <RootNavigator />
+      <SafeAreaProvider>
+        <StatusBar
+          translucent={false}
+          backgroundColor="#fff"
+          barStyle="dark-content"
+        />
+        <RootNavigator />
+      </SafeAreaProvider>
     </Provider>
   );
 }

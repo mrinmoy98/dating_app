@@ -5,7 +5,7 @@ import { ResizeMode, Video } from 'expo-av';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
-import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRegistration } from '../../context/RegistrationContext';
 import { api } from '../../lib/api';
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
         setRemote(u);
         dispatch(setUser(u));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [authToken, dispatch]);
 
   const openWebBrowser = async () => {
@@ -81,16 +81,22 @@ export default function ProfileScreen() {
     : mockCurrentUser.bio;
   const interests: string[] = backend
     ? [
-        ...(backend.interests ?? []),
-        backend.religion,
-        backend.relationship_status,
-        ...(backend.other_languages ?? []),
-      ].filter(Boolean)
+      ...(backend.interests ?? []),
+      backend.religion,
+      backend.relationship_status,
+      ...(backend.other_languages ?? []),
+    ].filter(Boolean)
     : mockCurrentUser.interests;
   const stats = mockCurrentUser.stats; // matches/likes not yet implemented in the backend
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar
+        translucent={false}
+        backgroundColor="#fff"
+        barStyle="dark-content"
+      />
+
       <View style={styles.header}>
         <Typography variant="title">Profile</Typography>
         <Pressable style={styles.settingsButton} onPress={() => setSettingsVisible(true)}>
@@ -285,7 +291,8 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    // backgroundColor: '#f5f5f5',
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: 'row',

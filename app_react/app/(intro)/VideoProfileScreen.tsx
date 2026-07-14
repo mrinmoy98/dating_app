@@ -8,6 +8,7 @@ import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
 import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VideoProfileScreen() {
   const router = useRouter();
@@ -46,50 +47,53 @@ export default function VideoProfileScreen() {
   const goNext = () => router.push("/(intro)/FaceRevealScreen");
 
   return (
-    <View style={styles.container}>
-      <ProgressBar />
-      <Text style={styles.title}>Add a video profile</Text>
-      <Text style={styles.subtitle}>
-        A short intro video helps you stand out. This step is optional — you can skip it.
-      </Text>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <View style={styles.container}>
+        <ProgressBar />
+        <Text style={styles.title}>Add a video profile</Text>
+        <Text style={styles.subtitle}>
+          A short intro video helps you stand out. This step is optional — you can skip it.
+        </Text>
 
-      <TouchableOpacity style={styles.videoBox} onPress={pickVideo} activeOpacity={0.85}>
-        {videoUri ? (
-          <Video
-            source={{ uri: videoUri }}
-            style={styles.video}
-            useNativeControls
-            resizeMode={ResizeMode.COVER}
-            isLooping
-          />
-        ) : (
-          <View style={styles.placeholder}>
-            <MaterialIcons name="videocam" size={40} color="#8d2561" />
-            <Text style={styles.placeholderText}>Tap to record / upload a video</Text>
+        <TouchableOpacity style={styles.videoBox} onPress={pickVideo} activeOpacity={0.85}>
+          {videoUri ? (
+            <Video
+              source={{ uri: videoUri }}
+              style={styles.video}
+              useNativeControls
+              resizeMode={ResizeMode.COVER}
+              isLooping
+            />
+          ) : (
+            <View style={styles.placeholder}>
+              <MaterialIcons name="videocam" size={40} color="#8d2561" />
+              <Text style={styles.placeholderText}>Tap to record / upload a video</Text>
+            </View>
+          )}
+          {uploading && (
+            <View style={styles.uploadOverlay}>
+              <ActivityIndicator color="#fff" size="large" />
+              <Text style={styles.uploadingText}>Uploading…</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {!!data.video_url && !uploading && (
+          <View style={styles.doneRow}>
+            <Ionicons name="checkmark-circle" size={18} color="#2e7d32" />
+            <Text style={styles.doneText}>Video uploaded</Text>
           </View>
         )}
-        {uploading && (
-          <View style={styles.uploadOverlay}>
-            <ActivityIndicator color="#fff" size="large" />
-            <Text style={styles.uploadingText}>Uploading…</Text>
-          </View>
-        )}
-      </TouchableOpacity>
 
-      {!!data.video_url && !uploading && (
-        <View style={styles.doneRow}>
-          <Ionicons name="checkmark-circle" size={18} color="#2e7d32" />
-          <Text style={styles.doneText}>Video uploaded</Text>
-        </View>
-      )}
+        <IntroNav onNext={goNext} nextDisabled={uploading} />
+      </View>
+    </SafeAreaView>
 
-      <IntroNav onNext={goNext} nextDisabled={uploading} />
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20, paddingTop: 90 },
+  container: { flex: 1, backgroundColor: "#fff", padding: 20, paddingTop: 24 },
   title: { fontSize: 26, fontWeight: "bold", marginBottom: 8, color: "#111" },
   subtitle: { fontSize: 15, color: "#777", marginBottom: 24 },
   videoBox: {

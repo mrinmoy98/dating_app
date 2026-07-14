@@ -107,7 +107,7 @@ export default function ProfileSettingsModal({
             />
 
             <SettingItem
-              icon={<AntDesign name="eyeo" size={20} color={Colors.primary} />}
+              icon={<AntDesign name="eye" size={20} color={Colors.primary} />}
               title="Incognito Mode"
               description="Browse profiles without being seen"
               hasToggle={true}

@@ -2,15 +2,15 @@ import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
 import IntroNav from '../components/Shared/IntroNav';
 import ProgressBar from '../components/Shared/ProgressBar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const religionOptions = [
   'Hindu', 'Spiritual', 'Muslim',
@@ -25,50 +25,51 @@ export default function ReligionSelection() {
   const [selectedReligion, setSelectedReligion] = useState('');
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* <View style={styles.progressBar} /> */}
-      <ProgressBar />
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <View style={styles.container}>
+        <ProgressBar />
 
-      <Text style={styles.heading}>What religion do{'\n'}you follow?</Text>
-      <Text style={styles.subheading}>
-        Select the option that resonates with you.
-      </Text>
-
-      <View style={styles.optionsWrapper}>
-        {religionOptions.map((religion, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.optionButton,
-              selectedReligion === religion && styles.selectedButton,
-            ]}
-            onPress={() => setSelectedReligion(religion)}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                selectedReligion === religion && styles.selectedText,
-              ]}
-            >
-              {religion}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.noteBox}>
-        <AntDesign name="infocirlceo" size={16} color="#555" />
-        <Text style={styles.noteText}>
-          You can always edit this in your profile.
+        <Text style={styles.heading}>What religion do{'\n'}you follow?</Text>
+        <Text style={styles.subheading}>
+          Select the option that resonates with you.
         </Text>
-      </View>
 
-      <IntroNav
-        onNext={() => {
-          patch({ religion: selectedReligion || undefined });
-          router.push('/(intro)/LanguageSelection');
-        }}
-      />
+        <View style={styles.optionsWrapper}>
+          {religionOptions.map((religion, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.optionButton,
+                selectedReligion === religion && styles.selectedButton,
+              ]}
+              onPress={() => setSelectedReligion(religion)}
+            >
+              <Text
+                style={[
+                  styles.optionText,
+                  selectedReligion === religion && styles.selectedText,
+                ]}
+              >
+                {religion}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.noteBox}>
+          <AntDesign name="info-circle" size={16} color="#555" />
+          <Text style={styles.noteText}>
+            You can always edit this in your profile.
+          </Text>
+        </View>
+
+        <IntroNav
+          onNext={() => {
+            patch({ religion: selectedReligion || undefined });
+            router.push('/(intro)/LanguageSelection');
+          }}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 24,
-    paddingTop:90
+    paddingTop: 24
 
   },
   progressBar: {

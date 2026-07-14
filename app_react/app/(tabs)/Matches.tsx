@@ -2,7 +2,7 @@ import Colors from "@/data/Colors";
 import { mockMatches } from "@/utils/mockData";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, StatusBar, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { fetchMatches } from "../../store/slices/matchSlice";
@@ -59,6 +59,11 @@ export default function MatchesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar
+        translucent={false}
+        backgroundColor="#fff"
+        barStyle="dark-content"
+      />
       <View style={styles.header}>
         <Typography variant="title">Matches</Typography>
       </View>
@@ -110,7 +115,8 @@ export default function MatchesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    // backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
   },
   header: {
     padding: 16,
