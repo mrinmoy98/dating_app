@@ -419,10 +419,12 @@ const styles = StyleSheet.create({
   },
   profileName: {
     marginRight: 8,
+
   },
   profileLocation: {
     color: Colors.darkGray,
     marginTop: 4,
+    textAlign: 'center',
   },
   editProfileButton: {
     flexDirection: 'row',
