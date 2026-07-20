@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Match } from '../../entity/match.entity';
 import { Swipe } from '../../entity/swipe.entity';
 import { User } from '../../entity/user.entity';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class MatchService {
@@ -11,6 +12,7 @@ export class MatchService {
     @InjectModel('Swipe') private readonly swipeModel: Model<Swipe>,
     @InjectModel('Match') private readonly matchModel: Model<Match>,
     @InjectModel('User') private readonly userModel: Model<User>,
+    private readonly notifications: NotificationService,
   ) {}
 
 
@@ -29,13 +31,19 @@ export class MatchService {
 
     if (action !== 'like') return { matched: false };
 
+    const me = await this.userModel.findById(userId);
+    const myName = me?.first_name ?? 'Someone';
+
     // Did the target already like us back?
     const reciprocal = await this.swipeModel.findOne({
       from: targetId,
       to: userId,
       action: 'like',
     });
-    if (!reciprocal) return { matched: false };
+    if (!reciprocal) {
+      await this.notifications.push(targetId, userId, 'like', `${myName} liked your profile`);
+      return { matched: false };
+    }
 
     const pair = [String(userId), String(targetId)].sort();
     const match = await this.matchModel.findOneAndUpdate(
@@ -44,7 +52,35 @@ export class MatchService {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
+    await Promise.all([
+      this.notifications.push(targetId, userId, 'match', `You matched with ${myName}! 💕`),
+      this.notifications.push(
+        userId,
+        targetId,
+        'match',
+        `You matched with ${target.first_name ?? 'someone'}! 💕`,
+      ),
+    ]);
+
     return { matched: true, match: this.toCard(target, String(match._id)) };
+  }
+
+  /** People I liked (swiped right on). */
+  async myLikes(userId: string) {
+    const rows = await this.swipeModel
+      .find({ from: userId, action: 'like' })
+      .sort({ created_at: -1 })
+      .populate('to');
+    return rows.map((r) => this.toCard(r.to as unknown as User, '')).filter(Boolean);
+  }
+
+  /** People who liked me (and we haven't matched yet). */
+  async likedMe(userId: string) {
+    const rows = await this.swipeModel
+      .find({ to: userId, action: 'like' })
+      .sort({ created_at: -1 })
+      .populate('from');
+    return rows.map((r) => this.toCard(r.from as unknown as User, '')).filter(Boolean);
   }
 
   async getMatches(userId: string) {

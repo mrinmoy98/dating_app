@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema } from '../../entity/user.entity';
+import { ApiModule } from '../api.module';
 import { CallGateway } from './call.gateway';
 
-/** Random 1:1 video-call matchmaking + WebRTC signaling (socket.io, ns /call). */
+/**
+ * Realtime layer (Socket.IO, namespace /rt): 1:1 chat, presence, and
+ * frame-based video calls between friends. Reuses ApiModule's SocialService
+ * (friendship checks) and the User/Message models.
+ */
 @Module({
-  imports: [MongooseModule.forFeature([{ name: 'User', schema: UserSchema }])],
+  imports: [ApiModule],
   providers: [CallGateway],
 })
 export class CallModule {}

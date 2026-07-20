@@ -28,4 +28,18 @@ export class MatchController {
   matches(@CurrentUser() user: { sub: string }) {
     return this.matchService.getMatches(user.sub);
   }
+
+  @Get('likes')
+  @Roles('user')
+  @ApiOperation({ summary: 'People I liked (swiped right)' })
+  likes(@CurrentUser() user: { sub: string }) {
+    return this.matchService.myLikes(user.sub);
+  }
+
+  @Get('liked-me')
+  @Roles('user')
+  @ApiOperation({ summary: 'People who liked me' })
+  likedMe(@CurrentUser() user: { sub: string }) {
+    return this.matchService.likedMe(user.sub);
+  }
 }
