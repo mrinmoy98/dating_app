@@ -21,7 +21,6 @@ export class AdminAuthService implements OnModuleInit {
     @InjectModel('Admin') private readonly adminModel: Model<Admin>,
   ) {}
 
-  /** Seed a super-admin on first boot if none exists (credentials from .env). */
   async onModuleInit() {
     const existing = await this.adminModel.findOne({ role: 'superadmin' });
     if (existing) return;
@@ -68,7 +67,7 @@ export class AdminAuthService implements OnModuleInit {
       sub: String(admin._id),
       email: admin.email,
       name: admin.name,
-      role: admin.role, // 'admin' | 'superadmin'
+      role: admin.role,
     };
     return {
       token: this.jwtService.sign(payload),

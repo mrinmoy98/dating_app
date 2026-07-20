@@ -44,9 +44,6 @@ export class ApiAuthService {
     @InjectModel('Swipe') private readonly swipeModel: Model<Swipe>,
   ) {}
 
-  // ===========================================================================
-  // Phone OTP (step 1)
-  // ===========================================================================
   async sendOtp(rawPhone: string) {
     const phone = this.normalizePhone(rawPhone);
     const code = await this.issueOtp(phone, 'phone');
@@ -60,12 +57,10 @@ export class ApiAuthService {
 
     const user = await this.userModel.findOne({ phone });
 
-    // A banned account can never log in or re-register on the same number.
     if (user && user.status === 'banned') {
       throw new ForbiddenException('This account has been suspended');
     }
 
-    // Returning user with a finished profile → log them straight in.
     if (user && user.is_profile_complete) {
       user.phone_verified = true;
       user.last_active_at = new Date();
@@ -77,7 +72,6 @@ export class ApiAuthService {
       };
     }
 
-    // New / incomplete user → registration token (phone verified, email pending).
     return {
       isNewUser: true,
       registrationToken: this.issueRegistrationToken({
@@ -88,13 +82,10 @@ export class ApiAuthService {
     };
   }
 
-  // ===========================================================================
-  // Email OTP (step 2) — requires a valid registration token
-  // ===========================================================================
+  
   async sendEmailOtp(token: RegPayload, rawEmail: string) {
     this.assertRegToken(token);
     const email = this.normalizeEmail(rawEmail);
-    // Reject early if this email already belongs to another account.
     await this.assertEmailAvailable(email, token.phone);
     const code = await this.issueOtp(email, 'email');
     await this.sendEmail(email, code);
@@ -104,11 +95,9 @@ export class ApiAuthService {
   async verifyEmailOtp(token: RegPayload, rawEmail: string, code: string) {
     this.assertRegToken(token);
     const email = this.normalizeEmail(rawEmail);
-    // Re-check in case someone else registered this email while the OTP was in flight.
     await this.assertEmailAvailable(email, token.phone);
     await this.checkOtp(email, code);
 
-    // Upgrade the registration token so it now carries the verified email.
     return {
       emailVerified: true,
       registrationToken: this.issueRegistrationToken({
@@ -119,14 +108,11 @@ export class ApiAuthService {
     };
   }
 
-  // ===========================================================================
-  // Complete registration (step 3) — phone & email come from the token
-  // ===========================================================================
+  
   async register(token: RegPayload, dto: RegisterDto) {
     this.assertRegToken(token);
     const phone = this.normalizePhone(token.phone as string);
 
-    // Final guard: the verified email must not belong to a different account.
     if (token.email) {
       await this.assertEmailAvailable(this.normalizeEmail(token.email), phone);
     }
@@ -180,7 +166,6 @@ export class ApiAuthService {
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
     } catch (err: any) {
-      // Duplicate-key from the unique phone/email index → someone got there first.
       if (err?.code === 11000) {
         const field = err?.keyPattern?.email ? 'email address' : 'phone number';
         throw new ConflictException(`This ${field} is already registered`);
@@ -194,16 +179,13 @@ export class ApiAuthService {
     };
   }
 
-  /** Current authenticated user (for the dynamic profile page). */
   async me(userId: string) {
     const user = await this.userModel.findById(userId).select('+password');
     if (!user) throw new UnauthorizedException('User not found');
     return this.toPublicUser(user);
   }
 
-  // ===========================================================================
-  // Update profile — logged-in user edits their own account (PATCH semantics)
-  // ===========================================================================
+
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new UnauthorizedException('User not found');
@@ -211,9 +193,6 @@ export class ApiAuthService {
       throw new ForbiddenException('This account has been suspended');
     }
 
-    // Build a $set from ONLY the fields the client actually sent, so untouched
-    // fields keep their current value. `undefined` = "not provided" (skip);
-    // an explicit `null`/'' is honoured so a user can clear a field.
     const set: Record<string, unknown> = {};
     const assign = <K extends keyof UpdateProfileDto>(key: K) => {
       if (dto[key] !== undefined) set[key as string] = dto[key];
@@ -246,7 +225,6 @@ export class ApiAuthService {
     assign('family_details');
     assign('video_url');
 
-    // Structured address (dot-path updates so we don't wipe the whole object).
     if (dto.city !== undefined) set['address.city'] = dto.city;
     if (dto.state !== undefined) set['address.state'] = dto.state;
     if (dto.country !== undefined) set['address.country'] = dto.country;
@@ -274,9 +252,6 @@ export class ApiAuthService {
     return this.toPublicUser(updated as User);
   }
 
-  // ===========================================================================
-  // Partner preferences
-  // ===========================================================================
   async updatePreferences(userId: string, dto: UpdatePreferencesDto) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new UnauthorizedException('User not found');
@@ -317,9 +292,7 @@ export class ApiAuthService {
     return this.toPublicUser(updated as User);
   }
 
-  // ===========================================================================
-  // Discover — candidates matching the current user's preferences
-  // ===========================================================================
+
   async discover(userId: string) {
     const me = await this.userModel.findById(userId);
     if (!me) throw new UnauthorizedException('User not found');
@@ -328,12 +301,9 @@ export class ApiAuthService {
     const ageMin = p.age_min ?? 18;
     const ageMax = p.age_max ?? 60;
     const now = new Date();
-    // Someone aged `ageMin` was born at most `ageMin` years ago (youngest allowed).
     const maxDob = new Date(now.getFullYear() - ageMin, now.getMonth(), now.getDate());
-    // Someone aged `ageMax` was born within the last `ageMax+1` years (oldest allowed).
     const minDob = new Date(now.getFullYear() - ageMax - 1, now.getMonth(), now.getDate());
 
-    // Exclude the user themselves and anyone they've already swiped.
     const swiped = await this.swipeModel.find({ from: me._id }).select('to').lean();
     const excludeIds = [me._id, ...swiped.map((s) => s.to)];
 
@@ -343,8 +313,6 @@ export class ApiAuthService {
       is_profile_complete: true,
       dob: { $gte: minDob, $lte: maxDob },
     };
-    // Which genders to show. If the user hasn't chosen, default to the opposite
-    // of their own gender (Male → Female, Female → Male).
     let interestedIn: string[] = p.interested_in ?? [];
     if (!interestedIn.length) {
       if (me.gender === 'Male') interestedIn = ['Female'];
@@ -382,15 +350,12 @@ export class ApiAuthService {
             : null;
         return { c, d };
       })
-      // Drop anyone beyond the distance limit (only when we can measure it).
       .filter(({ d }) => !(hasGeo && maxDist != null && d != null && d > maxDist))
       .sort((a, b) => (a.d ?? Number.MAX_SAFE_INTEGER) - (b.d ?? Number.MAX_SAFE_INTEGER))
       .map(({ c, d }) => this.toCard(c, d));
   }
 
-  // ===========================================================================
-  // Password (optional login method alongside OTP)
-  // ===========================================================================
+
   async setPassword(userId: string, dto: SetPasswordDto) {
     const hash = await bcrypt.hash(dto.password, 10);
     const user = await this.userModel.findByIdAndUpdate(
@@ -408,7 +373,6 @@ export class ApiAuthService {
       ? { email: id.toLowerCase() }
       : { phone: this.normalizePhone(id) };
 
-    // password has select:false, so ask for it explicitly.
     const user = await this.userModel.findOne(query).select('+password');
     if (!user || !user.password) {
       throw new UnauthorizedException('Invalid email/phone or password');
@@ -424,11 +388,7 @@ export class ApiAuthService {
     return { token: this.issueAuthToken(user), user: this.toPublicUser(user) };
   }
 
-  // ===========================================================================
-  // OTP helpers (shared by phone + email)
-  // ===========================================================================
 
-  /** Create/replace an OTP for an identifier and return the plaintext code. */
   private async issueOtp(identifier: string, channel: 'phone' | 'email') {
     const code = String(randomInt(1000, 10000)); // 4-digit
     const codeHash = await bcrypt.hash(code, 10);
@@ -443,7 +403,6 @@ export class ApiAuthService {
     return code;
   }
 
-  /** Validate a submitted code for an identifier and consume it. Throws on failure. */
   private async checkOtp(identifier: string, code: string) {
     const otp = await this.otpModel.findOne({ identifier });
     if (!otp || otp.consumed) throw new BadRequestException('Request a new code');
@@ -471,23 +430,18 @@ export class ApiAuthService {
       target,
       message,
       expiresInMinutes: minutes,
-      ...(devMode ? { devCode: code } : {}), // dev-only, so the app works without SMS/email
+      ...(devMode ? { devCode: code } : {}),
     };
   }
 
-  /** Deliver an SMS OTP. Dev: just log. Wire a real gateway for production. */
   private async sendSms(phone: string, code: string) {
     this.logger.log(`SMS OTP for ${phone}: ${code}`);
   }
 
-  /** Deliver an email OTP. Dev: just log. Wire SMTP (nodemailer) for production. */
   private async sendEmail(email: string, code: string) {
     this.logger.log(`EMAIL OTP for ${email}: ${code}`);
   }
 
-  // ===========================================================================
-  // Tokens
-  // ===========================================================================
   private issueAuthToken(user: User) {
     return this.jwtService.sign({
       sub: String(user._id),
@@ -515,11 +469,7 @@ export class ApiAuthService {
     }
   }
 
-  /**
-   * Ensure `email` is not already tied to a *different* account. Re-running the
-   * flow on the same phone number is allowed (it's the same person), so we only
-   * conflict when the existing owner's phone differs from the one registering.
-   */
+  
   private async assertEmailAvailable(email: string, phone?: string) {
     const existing = await this.userModel.findOne({ email }).lean();
     if (!existing) return;
@@ -573,7 +523,6 @@ export class ApiAuthService {
     };
   }
 
-  /** Shape a candidate for the Discover swipe card (matches the mobile card). */
   private toCard(user: User, distanceKm: number | null) {
     const primary = user.photos?.find((ph) => ph.is_primary) ?? user.photos?.[0];
     return {
@@ -608,7 +557,6 @@ export class ApiAuthService {
     return age;
   }
 
-  /** Great-circle distance between two lat/lng points, in kilometres. */
   private distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const toRad = (v: number) => (v * Math.PI) / 180;
     const R = 6371;
@@ -620,9 +568,6 @@ export class ApiAuthService {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // ===========================================================================
-  // Misc helpers
-  // ===========================================================================
   private normalizePhone(phone: string) {
     const cleaned = (phone || '').replace(/[\s\-()]/g, '').trim();
     if (cleaned.length < 8) throw new BadRequestException('Enter a valid phone number');

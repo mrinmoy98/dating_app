@@ -8,7 +8,6 @@ export type NotificationType =
   | 'message'
   | 'call';
 
-/** An in-app notification delivered to `user`. */
 export const NotificationSchema = new mongoose.Schema(
   {
     user: { type: mongoose.SchemaTypes.ObjectId, ref: 'User', required: true, index: true },
