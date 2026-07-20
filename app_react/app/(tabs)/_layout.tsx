@@ -10,8 +10,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.RASPBERRY_SIPS,
         tabBarInactiveTintColor: "#9aa0ac",
         headerShown: false,
-        tabBarStyle: { height: 60, paddingBottom: 8, paddingTop: 6 },
-        tabBarLabelStyle: { fontSize: 10.5 },
+        // tabBarStyle: { height: 60, paddingBottom: 18, paddingTop: 6 },
+        // tabBarLabelStyle: { fontSize: 10.5 },
       }}
     >
       <Tabs.Screen
