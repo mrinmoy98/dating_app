@@ -13,10 +13,7 @@ export class MatchService {
     @InjectModel('User') private readonly userModel: Model<User>,
   ) {}
 
-  /**
-   * Record a like/pass. On a like, if the target already liked the user we
-   * create a match and return it.
-   */
+
   async swipe(userId: string, targetId: string, action: 'like' | 'pass') {
     if (userId === targetId) {
       throw new BadRequestException("You can't swipe on yourself");
@@ -50,7 +47,6 @@ export class MatchService {
     return { matched: true, match: this.toCard(target, String(match._id)) };
   }
 
-  /** All of the user's matches, newest first. */
   async getMatches(userId: string) {
     const matches = await this.matchModel
       .find({ users: userId })
@@ -68,7 +64,6 @@ export class MatchService {
       .filter(Boolean);
   }
 
-  /** Shape a matched user for the mobile list/card. */
   private toCard(user: User, matchId: string, matchedOn?: Date) {
     const primary = user.photos?.find((p) => p.is_primary) ?? user.photos?.[0];
     return {

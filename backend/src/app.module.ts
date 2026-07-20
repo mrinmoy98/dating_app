@@ -8,6 +8,7 @@ import { CustomThrottlerGuard } from './custom-throttler.guard';
 import { AppController } from './app.controller';
 import { AdminModule } from './admin/admin.module';
 import { ApiModule } from './api/api.module';
+import { CallModule } from './api/call/call.module';
 import { CmsModule } from './cms/cms.module';
 
 @Module({
@@ -39,6 +40,7 @@ import { CmsModule } from './cms/cms.module';
     AdminModule,
     ApiModule,
     CmsModule,
+    CallModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],

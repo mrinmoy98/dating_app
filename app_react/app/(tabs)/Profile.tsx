@@ -34,11 +34,9 @@ export default function ProfileScreen() {
   const dispatch = useAppDispatch();
   const [remote, setRemote] = useState<any | null>(ctxUser);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null); // null = viewer closed
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  // Refresh the profile from the backend whenever we have an auth token, and
-  // push it into the store so every screen sees the latest data.
   useEffect(() => {
     if (!authToken) return;
     api
@@ -63,12 +61,11 @@ export default function ProfileScreen() {
     router.replace('/landing');
   };
 
-  /** Camera icon: pick a new photo (with crop), upload it, and make it the cover. */
   const pickAndUploadPhoto = async () => {
     if (!authToken) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true, // crop before upload
+      allowsEditing: true,
       aspect: [3, 4],
       quality: 0.9,
     });
@@ -77,7 +74,6 @@ export default function ProfileScreen() {
       setUploadingPhoto(true);
       const urls = await api.uploadPhotos([result.assets[0].uri], authToken);
       const existing: string[] = (remote?.photos ?? []).map((p: any) => p.url);
-      // New photo becomes the cover; keep at most 6 photos total.
       const updated = await api.updateProfile(
         { photos: [...urls, ...existing].slice(0, 6) },
         authToken,
@@ -97,9 +93,7 @@ export default function ProfileScreen() {
   const showNext = () =>
     setViewerIndex((i) => (i == null ? i : (i + 1) % photos.length));
 
-  // ---- View model: real user when available, else mock (dev preview) ----
   const backend = remote;
-  // Real photos only when logged in — never show mock images on a real account.
   const photos: string[] = backend?.photos?.length
     ? backend.photos.map((p: any) => p.url)
     : authToken
@@ -123,7 +117,7 @@ export default function ProfileScreen() {
       ...(backend.other_languages ?? []),
     ].filter(Boolean)
     : mockCurrentUser.interests;
-  const stats = mockCurrentUser.stats; // matches/likes not yet implemented in the backend
+  const stats = mockCurrentUser.stats;
 
   return (
     <SafeAreaView style={styles.container}>
