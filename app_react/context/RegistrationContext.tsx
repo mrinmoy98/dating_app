@@ -10,14 +10,7 @@ import {
   setRegistrationToken,
 } from "../store/slices/registrationSlice";
 
-/**
- * Backwards-compatible adapter over the Redux store.
- *
- * The registration/auth state now lives in Redux (store/slices/*). This hook
- * keeps the exact same shape the screens already use, so nothing in the UI had
- * to change during the migration. New code can also read the store directly
- * with useAppSelector / dispatch the slice actions.
- */
+
 export function useRegistration() {
   const dispatch = useAppDispatch();
   const { authToken, user, isBootstrapping } = useAppSelector((s) => s.auth);
@@ -38,7 +31,6 @@ export function useRegistration() {
 
     setAuth: (token: string, u: any) => {
       dispatch(setCredentials({ token, user: u }));
-      // Persist so the session survives an app restart.
       SecureStore.setItemAsync(TOKEN_KEY, token).catch(() => {});
     },
 

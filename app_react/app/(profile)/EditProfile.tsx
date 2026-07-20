@@ -26,6 +26,7 @@ import { api, type Gender } from "../../lib/api";
 import { useAppDispatch } from "../../store/hooks";
 import { setUser } from "../../store/slices/authSlice";
 import ProfileSection from "../components/ProfileSection";
+import DatePickerField from "../components/Shared/DatePickerField";
 
 const GENDERS: Gender[] = ["Male", "Female", "Other"];
 const RELIGIONS = [
@@ -544,12 +545,17 @@ export default function EditProfileScreen() {
 
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Date of birth</Text>
-            <Pressable style={styles.dropdown} onPress={() => setShowDatePicker(true)}>
-              <Text style={[styles.dropdownText, !dobDate && { color: Colors.gray }]}>
-                {dobDate ? formatDob(dobDate) : "Select date"}
-              </Text>
-              <Feather name="calendar" size={20} color={Colors.primary} />
-            </Pressable>
+            {Platform.OS === "web" ? (
+              // Native picker has no web build — use a real date input there.
+              <DatePickerField value={dobDate} onChange={setDobDate} maximumDate={new Date()} />
+            ) : (
+              <Pressable style={styles.dropdown} onPress={() => setShowDatePicker(true)}>
+                <Text style={[styles.dropdownText, !dobDate && { color: Colors.gray }]}>
+                  {dobDate ? formatDob(dobDate) : "Select date"}
+                </Text>
+                <Feather name="calendar" size={20} color={Colors.primary} />
+              </Pressable>
+            )}
           </View>
 
           <Text style={styles.fieldLabel}>Gender</Text>

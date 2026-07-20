@@ -36,6 +36,16 @@ export default function ProfileScreen() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Unread notification badge (refreshed whenever this tab mounts).
+  useEffect(() => {
+    if (!authToken) return;
+    api
+      .unreadCount(authToken)
+      .then((r) => setUnreadCount(r?.count ?? 0))
+      .catch(() => { });
+  }, [authToken]);
 
   useEffect(() => {
     if (!authToken) return;
@@ -213,6 +223,33 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Typography style={styles.prefTitle}>Dating Preferences</Typography>
             <Typography style={styles.prefSub}>Set who you want to meet & find matches</Typography>
+          </View>
+          <Feather name="chevron-right" size={22} color={Colors.gray} />
+        </Pressable>
+
+        <Pressable style={styles.prefCard} onPress={() => router.push('/(profile)/Notifications' as any)}>
+          <View style={styles.prefIcon}>
+            <Feather name="bell" size={20} color={Colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography style={styles.prefTitle}>Notifications</Typography>
+            <Typography style={styles.prefSub}>Follows, likes, matches & messages</Typography>
+          </View>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Typography style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Typography>
+            </View>
+          )}
+          <Feather name="chevron-right" size={22} color={Colors.gray} />
+        </Pressable>
+
+        <Pressable style={styles.prefCard} onPress={() => router.push('/(profile)/Likes' as any)}>
+          <View style={styles.prefIcon}>
+            <Feather name="heart" size={20} color={Colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography style={styles.prefTitle}>Likes</Typography>
+            <Typography style={styles.prefSub}>People you liked & who liked you</Typography>
           </View>
           <Feather name="chevron-right" size={22} color={Colors.gray} />
         </Pressable>
@@ -552,6 +589,21 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: Colors.darkGray,
     marginTop: 2,
+  },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   // ---- full-screen photo viewer ----
   viewerBackdrop: {

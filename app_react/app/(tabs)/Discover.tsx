@@ -21,7 +21,7 @@ export default function Discover() {
   const dispatch = useAppDispatch();
   const { authToken } = useRegistration();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
   // Real candidates from the backend when logged in; mock data for dev preview.
   const [profiles, setProfiles] = useState<any[]>(mockProfiles);
   const [loading, setLoading] = useState(false);
@@ -136,6 +136,25 @@ export default function Discover() {
       friction: 4,
       useNativeDriver: false,
     }).start();
+  };
+
+  /** Follow the person shown in the details modal (mutual follow unlocks chat/call). */
+  const followProfile = async (profile: any) => {
+    if (!authToken || !profile?.id) return;
+    try {
+      const res = await api.follow(profile.id, authToken);
+      setSelectedProfile((p: any) =>
+        p && p.id === profile.id ? { ...p, is_following: true, is_friend: res?.is_friend } : p,
+      );
+      Alert.alert(
+        res?.is_friend ? "You're now friends! 🎉" : "Followed ✅",
+        res?.is_friend
+          ? "You follow each other — chat & video call are unlocked."
+          : `You are now following ${profile.firstName ?? "them"}.`,
+      );
+    } catch (e: any) {
+      Alert.alert("Could not follow", e?.message ?? "Please try again.");
+    }
   };
 
    const handleProfilePress = (profile:any) => {
@@ -268,6 +287,9 @@ export default function Discover() {
           profile={selectedProfile}
           visible={!!selectedProfile}
           onClose={() => setSelectedProfile(null)}
+          onPass={swipeLeft}
+          onLike={swipeRight}
+          onFollow={() => followProfile(selectedProfile)}
         />
       )}
     </SafeAreaView>

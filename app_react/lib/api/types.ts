@@ -7,19 +7,19 @@ export interface SendOtpResult {
   target: string;
   message: string;
   expiresInMinutes: number;
-  devCode?: string; // present only in dev mode
+  devCode?: string;
 }
 
 export interface VerifyOtpResult {
   isNewUser: boolean;
-  registrationToken?: string; // when new user → continue onboarding
-  token?: string; // when existing user → logged in
+  registrationToken?: string;
+  token?: string;
   user?: any;
 }
 
 export interface VerifyEmailResult {
   emailVerified: boolean;
-  registrationToken: string; // upgraded token carrying the verified email
+  registrationToken: string;
 }
 
 export interface AuthResult {
@@ -155,14 +155,72 @@ export interface ConnectionUser {
   height_label: string | null;
   relationship_goal: string | null;
   verified: boolean;
+  // full profile details
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  relationship_status?: string | null;
+  mother_tongue?: string | null;
+  other_languages?: string[];
+  smoking?: string | null;
+  drinking?: string | null;
+  diet?: string | null;
+  blood_group?: string | null;
+  complexion?: string | null;
+  health_info?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  video_url?: string | null;
 }
 
 export interface UserProfile extends ConnectionUser {
   followers_count: number;
   following_count: number;
   is_following: boolean;
+  follows_me: boolean;
+  is_friend: boolean;
   is_matched: boolean;
   is_me: boolean;
+  shared_interests?: string[];
+}
+
+// ---------------- Notifications ----------------
+export type NotificationType =
+  | "follow"
+  | "follow_back"
+  | "like"
+  | "match"
+  | "message"
+  | "call";
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  text: string;
+  read: boolean;
+  created_at: string;
+  from: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    photoUrl: string | null;
+  } | null;
+}
+
+// ---------------- Chat ----------------
+export interface ChatMessage {
+  id: string;
+  from: string;
+  to: string;
+  text: string;
+  read?: boolean;
+  created_at: string;
+}
+
+export interface ChatConversation {
+  user: ConnectionUser;
+  lastMessage: { text: string; from: string; created_at: string } | null;
+  unread: number;
 }
 
 export interface DiscoverCard {
@@ -172,7 +230,7 @@ export interface DiscoverCard {
   photoUrl: string | null;
   photos: string[];
   location: string | null;
-  distance: number | null; // km
+  distance: number | null;
   occupation: string | null;
   education: string | null;
   bio: string | null;

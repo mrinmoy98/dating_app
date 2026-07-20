@@ -1,7 +1,9 @@
 import { authApi } from "./auth";
+import { chatApi } from "./chat";
 import { cmsApi } from "./cms";
 import { discoverApi } from "./discover";
 import { matchApi } from "./match";
+import { notificationApi } from "./notification";
 import { profileApi } from "./profile";
 import { socialApi } from "./social";
 import { uploadApi } from "./upload";
@@ -13,6 +15,8 @@ export { profileApi } from "./profile";
 export { discoverApi } from "./discover";
 export { matchApi } from "./match";
 export { socialApi } from "./social";
+export { chatApi } from "./chat";
+export { notificationApi } from "./notification";
 export { cmsApi } from "./cms";
 export { uploadApi } from "./upload";
 export { http } from "./http";
@@ -30,6 +34,8 @@ export const api = {
   ...discoverApi,
   ...matchApi,
   ...socialApi,
+  ...chatApi,
+  ...notificationApi,
   ...cmsApi,
   ...uploadApi,
 };

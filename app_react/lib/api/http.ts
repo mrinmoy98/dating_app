@@ -1,14 +1,5 @@
 import { API_BASE_URL } from "../../config";
 
-/**
- * Low-level HTTP client for the Dating App backend.
- *
- * The backend wraps every response as { success, data } (or
- * { success:false, message }). This client unwraps `data` on success and throws
- * an Error with the server message on failure. Every module (auth, profile, …)
- * goes through here.
- */
-
 interface RequestOptions {
   method?: string;
   body?: any;
@@ -34,10 +25,6 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return (json?.data ?? json) as T;
 }
 
-/**
- * Upload multipart/form-data. We deliberately DON'T set Content-Type so fetch
- * adds the correct multipart boundary itself.
- */
 async function upload<T>(path: string, form: FormData, token?: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
@@ -51,7 +38,6 @@ async function upload<T>(path: string, form: FormData, token?: string): Promise<
   return (json?.data ?? json) as T;
 }
 
-/** The verbs — call these from the module files with a path from endpoints.ts. */
 export const http = {
   get: <T>(path: string, token?: string) => request<T>(path, { token }),
   post: <T>(path: string, body?: any, token?: string) =>

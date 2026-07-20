@@ -1,4 +1,3 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
@@ -15,27 +14,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
+import DatePickerField from "../components/Shared/DatePickerField";
 import { FieldError, FieldLabel } from "../components/Shared/FormField";
 import IntroNav from "../components/Shared/IntroNav";
 import ProgressBar from "../components/Shared/ProgressBar";
-
-function formatDate(d: Date) {
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd} / ${mm} / ${d.getFullYear()}`;
-}
 
 function toIso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
   ).padStart(2, "0")}`;
 }
-
-const EIGHTEEN_YEARS_AGO = new Date(
-  new Date().getFullYear() - 18,
-  new Date().getMonth(),
-  new Date().getDate(),
-);
 
 type Errors = { firstName?: string; dob?: string; gender?: string; location?: string };
 
@@ -46,7 +34,6 @@ export default function QuickIntroScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState<Date | null>(null);
-  const [showPicker, setShowPicker] = useState(false);
   const [gender, setGender] = useState<string | undefined>();
 
   // address
@@ -61,14 +48,6 @@ export default function QuickIntroScreen() {
 
   const [errors, setErrors] = useState<Errors>({});
   const clear = (k: keyof Errors) => setErrors((e) => ({ ...e, [k]: undefined }));
-
-  const onChangeDate = (_event: any, selected?: Date) => {
-    if (Platform.OS === "android") setShowPicker(false);
-    if (selected) {
-      setDob(selected);
-      clear("dob");
-    }
-  };
 
   const useMyLocation = async () => {
     clear("location");
@@ -162,35 +141,20 @@ export default function QuickIntroScreen() {
           />
         </View>
 
-        {/* DOB */}
+        {/* DOB — native picker on mobile, <input type="date"> on web */}
         <View style={styles.field}>
           <FieldLabel required>Date of birth</FieldLabel>
-          <TouchableOpacity
-            style={[styles.input, errors.dob && styles.inputError]}
-            activeOpacity={0.7}
-            onPress={() => setShowPicker(true)}
-          >
-            <Text style={{ fontSize: 16, color: dob ? "#000" : "#999" }}>
-              {dob ? formatDate(dob) : "DD / MM / YYYY"}
-            </Text>
-          </TouchableOpacity>
+          <DatePickerField
+            value={dob}
+            onChange={(d) => {
+              setDob(d);
+              clear("dob");
+            }}
+            maximumDate={new Date()}
+            style={errors.dob ? styles.inputError : undefined}
+          />
           <FieldError>{errors.dob}</FieldError>
         </View>
-        {showPicker && (
-          <DateTimePicker
-            value={dob ?? EIGHTEEN_YEARS_AGO}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            maximumDate={new Date()}
-            onChange={onChangeDate}
-            themeVariant="light"
-          />
-        )}
-        {Platform.OS === "ios" && showPicker && (
-          <TouchableOpacity onPress={() => setShowPicker(false)}>
-            <Text style={styles.doneText}>Done</Text>
-          </TouchableOpacity>
-        )}
 
         {/* Gender */}
         <View style={styles.field}>

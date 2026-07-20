@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -50,6 +51,26 @@ export default function ConnectionsScreen() {
     await api.unfollow(u.id, authToken).catch(() => load());
   };
 
+  /** Remove someone from my followers (they stop following me). */
+  const removeFollower = (u: ConnectionUser) => {
+    Alert.alert(
+      "Remove follower?",
+      `${u.firstName ?? "This user"} will no longer follow you.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            if (!authToken) return;
+            setFollowers((prev) => prev.filter((x) => x.id !== u.id));
+            await api.removeFollower(u.id, authToken).catch(() => load());
+          },
+        },
+      ],
+    );
+  };
+
   const data = tab === "following" ? following : followers;
 
   const renderItem = ({ item }: { item: ConnectionUser }) => (
@@ -73,7 +94,10 @@ export default function ConnectionsScreen() {
           <Text style={styles.unfollowText}>Following</Text>
         </Pressable>
       ) : (
-        <Feather name="chevron-right" size={20} color={Colors.gray} />
+        <Pressable style={styles.removeBtn} onPress={() => removeFollower(item)}>
+          <Feather name="user-minus" size={14} color={Colors.error} />
+          <Text style={styles.removeText}>Remove</Text>
+        </Pressable>
       )}
     </Pressable>
   );
@@ -135,5 +159,16 @@ const styles = StyleSheet.create({
   rowSub: { fontSize: 13, color: Colors.darkGray, marginTop: 2 },
   unfollowBtn: { borderWidth: 1, borderColor: Colors.primary, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 6 },
   unfollowText: { color: Colors.primary, fontWeight: "600", fontSize: 13 },
+  removeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderColor: Colors.error,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  removeText: { color: Colors.error, fontWeight: "600", fontSize: 13 },
   empty: { textAlign: "center", color: Colors.darkGray, marginTop: 40 },
 });

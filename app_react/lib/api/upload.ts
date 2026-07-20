@@ -1,7 +1,6 @@
 import { ENDPOINTS } from "./endpoints";
 import { http } from "./http";
 
-/** Build the multipart body for image/video uploads (expo-image-picker URIs). */
 function fileForm(field: string, uris: string[], kind: "image" | "video"): FormData {
   const form = new FormData();
   uris.forEach((uri, i) => {
@@ -16,16 +15,13 @@ function fileForm(field: string, uris: string[], kind: "image" | "video"): FormD
   return form;
 }
 
-/** Media uploads (profile photos + intro video). */
 export const uploadApi = {
-  /** Upload local image URIs; returns the stored public URLs. */
   async uploadPhotos(uris: string[], token: string): Promise<string[]> {
     const form = fileForm("files", uris, "image");
     const data = await http.upload<{ urls?: string[] }>(ENDPOINTS.upload.photos, form, token);
     return data?.urls ?? [];
   },
 
-  /** Upload one intro video; returns its public URL. */
   async uploadVideo(uri: string, token: string): Promise<string> {
     const form = fileForm("file", [uri], "video");
     const data = await http.upload<{ url?: string }>(ENDPOINTS.upload.video, form, token);

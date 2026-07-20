@@ -63,6 +63,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 3,
+    // zIndex keeps the button clickable above scroll content on web.
+    zIndex: 20,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -79,6 +81,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 5,
+    zIndex: 20,
   },
   disabled: { opacity: 0.5 },
 });

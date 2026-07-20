@@ -21,9 +21,22 @@ interface ProfileDetailsProps {
   profile: any;
   visible: boolean;
   onClose: () => void;
+  /** Swipe-left equivalent — skip this person. */
+  onPass?: () => void;
+  /** Swipe-right equivalent — like (goes to the Likes list). */
+  onLike?: () => void;
+  /** Follow / unfollow this person. */
+  onFollow?: () => void;
 }
 
-export default function ProfileDetails({ profile, visible, onClose }: ProfileDetailsProps) {
+export default function ProfileDetails({
+  profile,
+  visible,
+  onClose,
+  onPass,
+  onLike,
+  onFollow,
+}: ProfileDetailsProps) {
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
   
   const images = [
@@ -102,7 +115,8 @@ export default function ProfileDetails({ profile, visible, onClose }: ProfileDet
                 <EvilIcons name="location" size={18} color={Colors.primary} style={styles.icon} />
 
                   <Typography style={styles.detailText}>
-                    {profile.location} {profile.distance && `(${profile.distance} miles away)`}
+                    {profile.location}
+                    {profile.distance != null ? ` (${profile.distance} km away)` : ""}
                   </Typography>
                 </View>
               )}
@@ -131,23 +145,31 @@ export default function ProfileDetails({ profile, visible, onClose }: ProfileDet
           <View style={{ height: 100 }} />
         </ScrollView>
         
-        {/* Action Buttons */}
+        {/* Action Buttons — pass, follow, like */}
         <View style={styles.actions}>
           <ActionButton
             icon={<Feather name="x" size={24} color="white" />}
             color={Colors.error}
-            onPress={onClose}
+            onPress={() => {
+              onPass?.();
+              onClose();
+            }}
           />
           <ActionButton
-            icon={<AntDesign name="staro" size={24} color="white" />}
+            icon={
+              <Feather name={profile.is_following ? "user-check" : "user-plus"} size={22} color="white" />
+            }
             color={Colors.secondary}
             size="medium"
-            onPress={() => {}}
+            onPress={() => onFollow?.()}
           />
           <ActionButton
-            icon={<AntDesign name="hearto" size={24} color="white" />}
+            icon={<Feather name="heart" size={24} color="white" />}
             color={Colors.primary}
-            onPress={() => {}}
+            onPress={() => {
+              onLike?.();
+              onClose();
+            }}
           />
         </View>
       </View>
