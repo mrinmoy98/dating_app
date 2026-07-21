@@ -224,6 +224,7 @@ export class ApiAuthService {
     assign('disability');
     assign('family_details');
     assign('video_url');
+    assign('cover_url');
 
     if (dto.city !== undefined) set['address.city'] = dto.city;
     if (dto.state !== undefined) set['address.state'] = dto.state;
@@ -516,6 +517,7 @@ export class ApiAuthService {
       address: user.address,
       has_password: !!user.password,
       photos: user.photos,
+      cover_url: user.cover_url,
       video_url: user.video_url,
       preferences: user.preferences,
       status: user.status,

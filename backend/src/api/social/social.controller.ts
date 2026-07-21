@@ -65,6 +65,19 @@ export class SocialController {
     return this.social.removeFollower(user.sub, id);
   }
 
+  // ---- another user's follow lists (opened from their profile) ----
+  @Get('users/:id/followers')
+  @ApiOperation({ summary: 'Users who follow a given user' })
+  followersOf(@CurrentUser() user: { sub: string }, @Param('id') id: string) {
+    return this.social.followers(id, user.sub);
+  }
+
+  @Get('users/:id/following')
+  @ApiOperation({ summary: 'Users a given user follows' })
+  followingOf(@CurrentUser() user: { sub: string }, @Param('id') id: string) {
+    return this.social.following(id, user.sub);
+  }
+
   // ---- profile view (match/user profile) ----
   @Get('users/:id')
   @ApiOperation({ summary: 'Get a user public profile (with follow + match status)' })

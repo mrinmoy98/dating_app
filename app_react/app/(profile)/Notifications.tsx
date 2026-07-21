@@ -26,6 +26,7 @@ const STYLE_BY_TYPE: Record<NotificationType, { icon: any; color: string }> = {
   match: { icon: "zap", color: "#f59e0b" },
   message: { icon: "message-circle", color: "#8b5cf6" },
   call: { icon: "video", color: "#ef4444" },
+  reel_like: { icon: "film", color: Colors.primary },
 };
 
 function timeAgo(iso: string) {

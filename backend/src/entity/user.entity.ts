@@ -93,6 +93,7 @@ export const UserSchema = new mongoose.Schema(
     family_details: { type: [FamilyDetailSchema], default: [] },
     address: { type: AddressSchema, default: () => ({}) },
     photos: { type: [PhotoSchema], default: [] },
+    cover_url: { type: String, default: null },
     video_url: { type: String, default: null },
     preferences: { type: PreferenceSchema, default: () => ({}) },
     role: { type: String, default: 'user' },
@@ -184,6 +185,7 @@ export interface User extends mongoose.Document {
   family_details: UserFamilyDetail[];
   address: UserAddress;
   photos: UserPhoto[];
+  cover_url: string | null;
   video_url: string | null;
   preferences: UserPreferences;
   role: string;

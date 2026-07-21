@@ -5,6 +5,7 @@ import { discoverApi } from "./discover";
 import { matchApi } from "./match";
 import { notificationApi } from "./notification";
 import { profileApi } from "./profile";
+import { reelApi } from "./reel";
 import { socialApi } from "./social";
 import { uploadApi } from "./upload";
 
@@ -15,6 +16,7 @@ export { profileApi } from "./profile";
 export { discoverApi } from "./discover";
 export { matchApi } from "./match";
 export { socialApi } from "./social";
+export { reelApi } from "./reel";
 export { chatApi } from "./chat";
 export { notificationApi } from "./notification";
 export { cmsApi } from "./cms";
@@ -34,6 +36,7 @@ export const api = {
   ...discoverApi,
   ...matchApi,
   ...socialApi,
+  ...reelApi,
   ...chatApi,
   ...notificationApi,
   ...cmsApi,

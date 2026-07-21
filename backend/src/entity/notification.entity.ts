@@ -6,7 +6,8 @@ export type NotificationType =
   | 'like'
   | 'match'
   | 'message'
-  | 'call';
+  | 'call'
+  | 'reel_like';
 
 export const NotificationSchema = new mongoose.Schema(
   {
@@ -14,7 +15,7 @@ export const NotificationSchema = new mongoose.Schema(
     from: { type: mongoose.SchemaTypes.ObjectId, ref: 'User', default: null },
     type: {
       type: String,
-      enum: ['follow', 'follow_back', 'like', 'match', 'message', 'call'],
+      enum: ['follow', 'follow_back', 'like', 'match', 'message', 'call', 'reel_like'],
       required: true,
     },
     text: { type: String, default: '' },

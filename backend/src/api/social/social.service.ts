@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Follow } from '../../entity/follow.entity';
 import { Match } from '../../entity/match.entity';
+import { Reel } from '../../entity/reel.entity';
 import { User } from '../../entity/user.entity';
 import { NotificationService } from '../notification/notification.service';
 
@@ -12,6 +13,7 @@ export class SocialService {
     @InjectModel('User') private readonly userModel: Model<User>,
     @InjectModel('Follow') private readonly followModel: Model<Follow>,
     @InjectModel('Match') private readonly matchModel: Model<Match>,
+    @InjectModel('Reel') private readonly reelModel: Model<Reel>,
     private readonly notifications: NotificationService,
   ) {}
 
@@ -91,18 +93,21 @@ export class SocialService {
     const user = await this.userModel.findById(targetId);
     if (!user) throw new NotFoundException('User not found');
 
-    const [followersCount, followingCount, isFollowing, followsMe, matched] = await Promise.all([
-      this.followModel.countDocuments({ following: targetId }),
-      this.followModel.countDocuments({ follower: targetId }),
-      this.followModel.exists({ follower: viewerId, following: targetId }),
-      this.followModel.exists({ follower: targetId, following: viewerId }),
-      this.matchModel.exists({ users: { $all: [viewerId, targetId] } }),
-    ]);
+    const [followersCount, followingCount, reelsCount, isFollowing, followsMe, matched] =
+      await Promise.all([
+        this.followModel.countDocuments({ following: targetId }),
+        this.followModel.countDocuments({ follower: targetId }),
+        this.reelModel.countDocuments({ user: targetId, status: 'active' }),
+        this.followModel.exists({ follower: viewerId, following: targetId }),
+        this.followModel.exists({ follower: targetId, following: viewerId }),
+        this.matchModel.exists({ users: { $all: [viewerId, targetId] } }),
+      ]);
 
     return {
       ...this.shape(user),
       followers_count: followersCount,
       following_count: followingCount,
+      reels_count: reelsCount,
       is_following: !!isFollowing,
       follows_me: !!followsMe,
       // Mutual follow → chat & video call unlocked.
@@ -166,38 +171,59 @@ export class SocialService {
     return { removed: true, id: followerId };
   }
 
-  async following(userId: string) {
-    const [rows, followMe] = await Promise.all([
-      this.followModel.find({ follower: userId }).sort({ created_at: -1 }).populate('following'),
-      this.followModel.find({ following: userId }).select('follower').lean(),
+  /**
+   * Who `targetId` follows. Relationship flags are always relative to the
+   * VIEWER, so the same list works on your own profile and on someone else's.
+   */
+  async following(targetId: string, viewerId = targetId) {
+    const [rows, flags] = await Promise.all([
+      this.followModel.find({ follower: targetId }).sort({ created_at: -1 }).populate('following'),
+      this.viewerFlags(viewerId),
     ]);
-    const followsMeIds = new Set(followMe.map((f) => String(f.follower)));
-    return rows
-      .map((r) => this.shape(r.following as unknown as User))
-      .filter(Boolean)
-      .map((u) => ({
-        ...u,
-        is_following: true,
-        follows_me: followsMeIds.has(u!.id),
-        is_friend: followsMeIds.has(u!.id),
-      }));
+    return this.withFlags(
+      rows.map((r) => this.shape(r.following as unknown as User)),
+      flags,
+      viewerId,
+    );
   }
 
-  async followers(userId: string) {
-    const [rows, iFollow] = await Promise.all([
-      this.followModel.find({ following: userId }).sort({ created_at: -1 }).populate('follower'),
-      this.followModel.find({ follower: userId }).select('following').lean(),
+  /** Who follows `targetId`. Flags are relative to the viewer — see above. */
+  async followers(targetId: string, viewerId = targetId) {
+    const [rows, flags] = await Promise.all([
+      this.followModel.find({ following: targetId }).sort({ created_at: -1 }).populate('follower'),
+      this.viewerFlags(viewerId),
     ]);
-    const iFollowIds = new Set(iFollow.map((f) => String(f.following)));
-    return rows
-      .map((r) => this.shape(r.follower as unknown as User))
-      .filter(Boolean)
-      .map((u) => ({
-        ...u,
-        follows_me: true,
-        is_following: iFollowIds.has(u!.id),
-        is_friend: iFollowIds.has(u!.id),
-      }));
+    return this.withFlags(
+      rows.map((r) => this.shape(r.follower as unknown as User)),
+      flags,
+      viewerId,
+    );
+  }
+
+  /** The viewer's own follow graph, as two id sets. */
+  private async viewerFlags(viewerId: string) {
+    const [iFollow, followMe] = await Promise.all([
+      this.followModel.find({ follower: viewerId }).select('following').lean(),
+      this.followModel.find({ following: viewerId }).select('follower').lean(),
+    ]);
+    return {
+      following: new Set(iFollow.map((f) => String(f.following))),
+      followers: new Set(followMe.map((f) => String(f.follower))),
+    };
+  }
+
+  private withFlags(
+    users: (ReturnType<SocialService['shape']> | null)[],
+    flags: { following: Set<string>; followers: Set<string> },
+    viewerId: string,
+  ) {
+    return users.filter(Boolean).map((u) => ({
+      ...u,
+      is_me: String(u!.id) === String(viewerId),
+      is_following: flags.following.has(u!.id),
+      follows_me: flags.followers.has(u!.id),
+      is_friend: flags.following.has(u!.id) && flags.followers.has(u!.id),
+    }));
   }
 
   private shape(u: User | null) {
@@ -209,6 +235,7 @@ export class SocialService {
       lastName: u.last_name,
       age: this.calcAge(u.dob),
       photoUrl: primary?.url ?? null,
+      coverUrl: u.cover_url ?? null,
       photos: (u.photos ?? []).map((p) => p.url),
       location: u.location,
       bio: u.bio,
