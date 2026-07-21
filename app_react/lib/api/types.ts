@@ -61,6 +61,8 @@ export interface RegisterPayload {
   postal_code?: string;
   photos?: string[];
   video_url?: string;
+  /** Wide banner shown behind the profile photo. */
+  cover_url?: string;
 }
 
 export interface Preferences {
@@ -144,6 +146,8 @@ export interface ConnectionUser {
   lastName?: string | null;
   age: number | null;
   photoUrl: string | null;
+  /** Wide banner shown behind the profile photo. */
+  coverUrl?: string | null;
   photos: string[];
   location: string | null;
   bio: string | null;
@@ -178,9 +182,31 @@ export interface ConnectionUser {
   shared_interests?: string[];
 }
 
+export interface Reel {
+  id: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  caption: string;
+  music: string;
+  likes_count: number;
+  comments_count: number;
+  views: number;
+  liked: boolean;
+  created_at: string;
+  user: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    photoUrl: string | null;
+    verified: boolean;
+    is_me: boolean;
+  };
+}
+
 export interface UserProfile extends ConnectionUser {
   followers_count: number;
   following_count: number;
+  reels_count?: number;
   is_following: boolean;
   follows_me: boolean;
   is_friend: boolean;
@@ -196,7 +222,8 @@ export type NotificationType =
   | "like"
   | "match"
   | "message"
-  | "call";
+  | "call"
+  | "reel_like";
 
 export interface AppNotification {
   id: string;

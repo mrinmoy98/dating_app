@@ -307,6 +307,11 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   video_url?: string;
+
+  /** Wide banner shown behind the profile photo. */
+  @IsOptional()
+  @IsString()
+  cover_url?: string;
 }
 
 export class UpdatePreferencesDto {

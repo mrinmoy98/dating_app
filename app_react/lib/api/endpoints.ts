@@ -16,6 +16,15 @@ export const ENDPOINTS = {
     swipe: "/api/match/swipe",
     matches: "/api/match/matches",
   },
+  reels: {
+    create: "/api/reels",
+    feed: "/api/reels/feed",
+    mine: "/api/reels/mine",
+    byUser: (id: string) => `/api/reels/user/${id}`,
+    like: (id: string) => `/api/reels/${id}/like`,
+    view: (id: string) => `/api/reels/${id}/view`,
+    remove: (id: string) => `/api/reels/${id}`,
+  },
   upload: {
     photos: "/api/upload/photos",
     video: "/api/upload/video",

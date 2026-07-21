@@ -5,6 +5,7 @@ import { MatchSchema } from '../entity/match.entity';
 import { MessageSchema } from '../entity/message.entity';
 import { NotificationSchema } from '../entity/notification.entity';
 import { OtpSchema } from '../entity/otp.entity';
+import { ReelSchema } from '../entity/reel.entity';
 import { SwipeSchema } from '../entity/swipe.entity';
 import { UserSchema } from '../entity/user.entity';
 import { ApiAuthController } from './auth/auth.controller';
@@ -14,6 +15,8 @@ import { MatchController } from './match/match.controller';
 import { MatchService } from './match/match.service';
 import { NotificationController } from './notification/notification.controller';
 import { NotificationService } from './notification/notification.service';
+import { ReelController } from './reel/reel.controller';
+import { ReelService } from './reel/reel.service';
 import { SocialController } from './social/social.controller';
 import { SocialService } from './social/social.service';
 import { UploadController } from './upload/upload.controller';
@@ -24,6 +27,7 @@ import { UploadController } from './upload/upload.controller';
  *  - /api/match/*                    like/pass + matches
  *  - /api/follow/*, /api/users/*     follow/unfollow, friends, new users, interests
  *  - /api/chat/*                     conversation list + message history
+ *  - /api/reels/*                    reel feed, profile grid, like, delete
  *  - /api/upload/*                   profile photo & video upload
  * Realtime (chat + calls) runs over Socket.IO — see CallModule.
  */
@@ -37,6 +41,7 @@ import { UploadController } from './upload/upload.controller';
       { name: 'Follow', schema: FollowSchema },
       { name: 'Message', schema: MessageSchema },
       { name: 'Notification', schema: NotificationSchema },
+      { name: 'Reel', schema: ReelSchema },
     ]),
   ],
   controllers: [
@@ -46,8 +51,9 @@ import { UploadController } from './upload/upload.controller';
     SocialController,
     ChatController,
     NotificationController,
+    ReelController,
   ],
-  providers: [ApiAuthService, MatchService, SocialService, NotificationService],
+  providers: [ApiAuthService, MatchService, SocialService, NotificationService, ReelService],
   // CallModule (socket gateway) needs friendship checks + live notifications.
   exports: [SocialService, NotificationService, MongooseModule],
 })

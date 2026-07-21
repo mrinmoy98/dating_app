@@ -3,7 +3,16 @@ import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useRegistration } from "../../../context/RegistrationContext";
 import { api } from "../../../lib/api";
 import { getSocket } from "../../../lib/socket";
@@ -19,6 +28,8 @@ interface AppHeaderProps {
   floating?: boolean;
   /** Extra action rendered to the left of the notification heart (e.g. settings). */
   rightExtra?: React.ReactNode;
+  /** Called after a reel is posted, so the caller can refresh its feed. */
+  onUploaded?: () => void;
 }
 
 /**
@@ -26,11 +37,20 @@ interface AppHeaderProps {
  * in the middle, and a heart notification button with an unread badge on the
  * right. Shared by every main tab so the actions are always in the same place.
  */
-export default function AppHeader({ title, dark, hideUpload, floating, rightExtra }: AppHeaderProps) {
+export default function AppHeader({
+  title,
+  dark,
+  hideUpload,
+  floating,
+  rightExtra,
+  onUploaded,
+}: AppHeaderProps) {
   const router = useRouter();
   const { authToken } = useRegistration();
   const [unread, setUnread] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [pendingVideo, setPendingVideo] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
 
   const tint = dark ? "#fff" : Colors.text;
 
@@ -53,8 +73,8 @@ export default function AppHeader({ title, dark, hideUpload, floating, rightExtr
     };
   }, [authToken]);
 
-  /** Pick a video from the gallery and upload it as a reel. */
-  const uploadReel = async () => {
+  /** Step 1 — pick a video from the gallery, then ask for a caption. */
+  const pickReel = async () => {
     if (!authToken) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["videos"],
@@ -62,10 +82,22 @@ export default function AppHeader({ title, dark, hideUpload, floating, rightExtr
       videoMaxDuration: 60,
     });
     if (result.canceled || !result.assets?.length) return;
+    setCaption("");
+    setPendingVideo(result.assets[0].uri);
+  };
+
+  /** Step 2 — upload the file, then create the reel row. */
+  const postReel = async () => {
+    if (!authToken || !pendingVideo) return;
     try {
       setUploading(true);
-      const url = await api.uploadVideo(result.assets[0].uri, authToken);
-      if (url) Alert.alert("Reel uploaded ✅", "Your reel will appear in the feed shortly.");
+      const url = await api.uploadVideo(pendingVideo, authToken);
+      if (!url) throw new Error("Upload failed");
+      await api.createReel({ video_url: url, caption: caption.trim() }, authToken);
+      setPendingVideo(null);
+      setCaption("");
+      Alert.alert("Reel posted ✅", "It's live in the Reels feed and on your profile.");
+      onUploaded?.();
     } catch (e: any) {
       Alert.alert("Upload failed", e?.message ?? "Please try again.");
     } finally {
@@ -85,7 +117,7 @@ export default function AppHeader({ title, dark, hideUpload, floating, rightExtr
       {hideUpload ? (
         <View style={styles.btn} />
       ) : (
-        <Pressable style={styles.btn} onPress={uploadReel} disabled={uploading} hitSlop={8}>
+        <Pressable style={styles.btn} onPress={pickReel} disabled={uploading} hitSlop={8}>
           {uploading ? (
             <ActivityIndicator size="small" color={tint} />
           ) : (
@@ -115,6 +147,45 @@ export default function AppHeader({ title, dark, hideUpload, floating, rightExtr
           )}
         </Pressable>
       </View>
+
+      {/* Caption sheet — shown after a video is picked */}
+      <Modal visible={!!pendingVideo} transparent animationType="slide">
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle}>New reel</Text>
+              <Pressable onPress={() => setPendingVideo(null)} hitSlop={8} disabled={uploading}>
+                <Feather name="x" size={22} color={Colors.text} />
+              </Pressable>
+            </View>
+
+            <View style={styles.sheetPreview}>
+              <Feather name="film" size={26} color={Colors.primary} />
+              <Text style={styles.sheetPreviewText} numberOfLines={1}>
+                {pendingVideo?.split("/").pop()}
+              </Text>
+            </View>
+
+            <TextInput
+              style={styles.sheetInput}
+              placeholder="Write a caption…"
+              placeholderTextColor={Colors.gray}
+              value={caption}
+              onChangeText={setCaption}
+              multiline
+              maxLength={300}
+            />
+
+            <Pressable style={styles.sheetBtn} onPress={postReel} disabled={uploading}>
+              {uploading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.sheetBtnText}>Share reel</Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -156,4 +227,43 @@ const styles = StyleSheet.create({
   },
   badgeDark: { borderColor: "#000" },
   badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+
+  // ---- new-reel caption sheet ----
+  sheetBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 34,
+    gap: 14,
+  },
+  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sheetTitle: { fontSize: 17, fontWeight: "800", color: Colors.text },
+  sheetPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.lightPrimary,
+    borderRadius: 12,
+    padding: 14,
+  },
+  sheetPreviewText: { flex: 1, fontSize: 13, color: Colors.text },
+  sheetInput: {
+    borderWidth: 1,
+    borderColor: "#e6e6ea",
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 80,
+    fontSize: 14,
+    color: Colors.text,
+    textAlignVertical: "top",
+  },
+  sheetBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  sheetBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });

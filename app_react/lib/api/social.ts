@@ -13,4 +13,11 @@ export const socialApi = {
   following: (token: string) => http.get<ConnectionUser[]>(`/api/follow/following`, token),
 
   followers: (token: string) => http.get<ConnectionUser[]>(`/api/follow/followers`, token),
+
+  /** Another user's follow lists — opened from their profile. */
+  followersOf: (id: string, token: string) =>
+    http.get<ConnectionUser[]>(`/api/users/${id}/followers`, token),
+
+  followingOf: (id: string, token: string) =>
+    http.get<ConnectionUser[]>(`/api/users/${id}/following`, token),
 };
