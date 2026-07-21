@@ -7,7 +7,6 @@ interface RegistrationState {
   phone: string;
   email: string;
   registrationToken: string | null;
-  /** Onboarding draft assembled across the intro screens. */
   data: RegistrationData;
 }
 
@@ -31,7 +30,6 @@ const registrationSlice = createSlice({
     setRegistrationToken(state, action: PayloadAction<string | null>) {
       state.registrationToken = action.payload;
     },
-    /** Merge one or more onboarding fields into the collected profile. */
     patchData(state, action: PayloadAction<RegistrationData>) {
       state.data = { ...state.data, ...action.payload };
     },

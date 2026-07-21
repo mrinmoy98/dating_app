@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, View, KeyboardAv
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
 import Button from "../components/Shared/Button";
+import DismissKeyboard from "../components/Shared/DismissKeyboard";
 import { FieldError } from "../components/Shared/FormField";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -55,7 +56,7 @@ export default function EmailScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <DismissKeyboard>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "height" : "padding"}
@@ -113,7 +114,7 @@ export default function EmailScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </DismissKeyboard>
     </SafeAreaView>
   );
 }

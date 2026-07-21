@@ -1,7 +1,4 @@
-/**
- * Every backend endpoint path lives here — one place to see/edit the API surface.
- * Grouped by module (auth, upload).
- */
+
 export const ENDPOINTS = {
   auth: {
     sendOtp: "/api/auth/send-otp",

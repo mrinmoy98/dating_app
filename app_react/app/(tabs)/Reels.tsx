@@ -12,10 +12,10 @@ import {
   Text,
   View,
 } from "react-native";
+import AppHeader from "../components/Shared/AppHeader";
 
 const { height, width } = Dimensions.get("window");
 
-// Mock reels — swap `media` for an <expo-av Video> source when wiring the backend.
 const REELS = [
   {
     id: "1",
@@ -134,11 +134,11 @@ function ReelItem({ item }: { item: (typeof REELS)[number] }) {
 
 export default function Reels() {
   const listRef = useRef(null);
+
   return (
     <View style={styles.container}>
-      <View style={styles.topBar} pointerEvents="none">
-        <Text style={styles.topTitle}>Reels</Text>
-      </View>
+      {/* Floating header over the black feed: + upload · Reels · ♡ notifications */}
+      <AppHeader title="Reels" dark floating />
       <FlatList
         ref={listRef}
         data={REELS}
@@ -155,8 +155,6 @@ export default function Reels() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#000" },
-  topBar: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, paddingTop: 50, alignItems: "center" },
-  topTitle: { color: "#fff", fontWeight: "800", fontSize: 18, textShadowColor: "rgba(0,0,0,0.5)", textShadowRadius: 6 },
   reel: { width, height, justifyContent: "flex-end" },
   media: { ...StyleSheet.absoluteFillObject, width, height, resizeMode: "cover", backgroundColor: "#111" },
   shade: { position: "absolute", left: 0, right: 0, bottom: 0, height: height * 0.45 },

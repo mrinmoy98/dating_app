@@ -13,40 +13,31 @@ import {
 import { randomBytes } from 'crypto';
 import { Model } from 'mongoose';
 import { Namespace, Socket } from 'socket.io';
+import { Message, pairKey } from '../../entity/message.entity';
 import { User } from '../../entity/user.entity';
+import { NotificationService } from '../notification/notification.service';
+import { SocialService } from '../social/social.service';
 
-/** One user waiting in the random-call queue. */
-interface QueueEntry {
-  socketId: string;
-  userId: string;
-  gender: string | null;
-  pref: string[]; // genders they want to meet; [] = anyone
-}
 
-/**
- * WebRTC signaling + random matchmaking for 1:1 video calls.
- *
- * Flow:
- *  client connects to ws://<api>/call with { auth: { token } }  (user JWT)
- *  → emit 'join_queue' { pref: ['Female'] }
- *  → server pairs two compatible users → both get 'matched'
- *    { roomId, initiator, partner } (initiator creates the WebRTC offer)
- *  → peers exchange 'signal' { roomId, data } (offer / answer / ICE)
- *  → 'leave' (or disconnect / re-queue) ends the room; partner gets 'partner_left'
- */
-@WebSocketGateway({ namespace: '/call', cors: { origin: true } })
+@WebSocketGateway({ namespace: '/rt', cors: { origin: true } })
 export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Namespace;
-  private readonly logger = new Logger('CallGateway');
+  private readonly logger = new Logger('RealtimeGateway');
 
-  private queue: QueueEntry[] = [];
-  private rooms = new Map<string, [string, string]>(); // roomId → [socketId, socketId]
-  private socketRoom = new Map<string, string>(); // socketId → roomId
+  private online = new Map<string, Set<string>>();
+  private calls = new Map<string, { a: string; b: string }>();
 
   constructor(
     private readonly jwt: JwtService,
+    private readonly social: SocialService,
+    private readonly notifications: NotificationService,
     @InjectModel('User') private readonly userModel: Model<User>,
-  ) {}
+    @InjectModel('Message') private readonly messageModel: Model<Message>,
+  ) {
+    this.notifications.registerEmitter((userId, event, payload) => {
+      this.server?.to(`user:${userId}`).emit(event, payload);
+    });
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -54,115 +45,184 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.handshake.query?.token) as string;
       const payload = await this.jwt.verifyAsync(token);
       if (payload.role !== 'user') throw new Error('not a user token');
-      client.data.userId = String(payload.sub);
+      const userId = String(payload.sub);
+      client.data.userId = userId;
+
+      if (!this.online.has(userId)) this.online.set(userId, new Set());
+      this.online.get(userId)!.add(client.id);
+      client.join(`user:${userId}`);
+
+      client.emit('ready', { userId });
+      this.broadcastPresence(userId, true);
     } catch {
       client.disconnect(true);
     }
   }
 
   handleDisconnect(client: Socket) {
-    this.queue = this.queue.filter((q) => q.socketId !== client.id);
-    this.closeRoomOf(client);
-  }
-
-  @SubscribeMessage('join_queue')
-  async joinQueue(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() body: { pref?: string[] },
-  ) {
     const userId = client.data.userId as string;
     if (!userId) return;
-
-    // Leaving a call to search again — close the old room, dedupe queue entries.
-    this.closeRoomOf(client);
-    this.queue = this.queue.filter(
-      (q) => q.socketId !== client.id && q.userId !== userId,
-    );
-
-    const me = await this.userModel.findById(userId).lean();
-    if (!me) return;
-
-    const entry: QueueEntry = {
-      socketId: client.id,
-      userId,
-      gender: me.gender ?? null,
-      pref: body?.pref?.length ? body.pref : [],
-    };
-
-    const idx = this.queue.findIndex((c) => this.compatible(entry, c));
-    if (idx === -1) {
-      this.queue.push(entry);
-      client.emit('waiting');
-      return;
+    const set = this.online.get(userId);
+    set?.delete(client.id);
+    if (set && set.size === 0) {
+      this.online.delete(userId);
+      this.broadcastPresence(userId, false);
     }
-
-    const partner = this.queue.splice(idx, 1)[0];
-    const partnerSocket = this.getSocket(partner.socketId);
-    if (!partnerSocket) {
-      // Partner vanished between queueing and matching — keep waiting.
-      this.queue.push(entry);
-      client.emit('waiting');
-      return;
+    for (const [callId, pair] of this.calls) {
+      if (pair.a === userId || pair.b === userId) {
+        const other = pair.a === userId ? pair.b : pair.a;
+        this.server.to(`user:${other}`).emit('call_end', { callId, reason: 'disconnected' });
+        this.calls.delete(callId);
+      }
     }
-
-    const roomId = randomBytes(8).toString('hex');
-    this.rooms.set(roomId, [client.id, partner.socketId]);
-    this.socketRoom.set(client.id, roomId);
-    this.socketRoom.set(partner.socketId, roomId);
-    client.join(roomId);
-    partnerSocket.join(roomId);
-
-    const [myCard, partnerCard] = await Promise.all([
-      this.card(userId),
-      this.card(partner.userId),
-    ]);
-    // The newly-joined side creates the WebRTC offer.
-    client.emit('matched', { roomId, initiator: true, partner: partnerCard });
-    partnerSocket.emit('matched', { roomId, initiator: false, partner: myCard });
-    this.logger.log(`matched ${userId} ↔ ${partner.userId} in ${roomId}`);
   }
 
-  /** Relay WebRTC offers/answers/ICE candidates to the other peer in the room. */
-  @SubscribeMessage('signal')
-  relay(
+  @SubscribeMessage('chat_send')
+  async chatSend(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { roomId: string; data: any },
+    @MessageBody() body: { to: string; text: string },
   ) {
-    if (!body?.roomId || this.socketRoom.get(client.id) !== body.roomId) return;
-    client.to(body.roomId).emit('signal', { data: body.data });
-  }
+    const from = client.data.userId as string;
+    if (!from || !body?.to || !body?.text?.trim()) return;
 
-  @SubscribeMessage('leave')
-  leave(@ConnectedSocket() client: Socket) {
-    this.queue = this.queue.filter((q) => q.socketId !== client.id);
-    this.closeRoomOf(client);
-  }
-
-  // ---- helpers ----
-
-  private compatible(a: QueueEntry, b: QueueEntry) {
-    if (a.userId === b.userId) return false;
-    const aOk = !a.pref.length || (b.gender != null && a.pref.includes(b.gender));
-    const bOk = !b.pref.length || (a.gender != null && b.pref.includes(a.gender));
-    return aOk && bOk;
-  }
-
-  /** Tear down the caller's room (if any) and tell the partner. */
-  private closeRoomOf(client: Socket) {
-    const roomId = this.socketRoom.get(client.id);
-    if (!roomId) return;
-    const pair = this.rooms.get(roomId) ?? [];
-    for (const sid of pair) {
-      this.socketRoom.delete(sid);
-      const s = this.getSocket(sid);
-      s?.leave(roomId);
-      if (sid !== client.id) s?.emit('partner_left');
+    if (!(await this.social.areFriends(from, body.to))) {
+      client.emit('error_msg', { message: 'You can only chat with people who follow you back.' });
+      return;
     }
-    this.rooms.delete(roomId);
+
+    const saved = await this.messageModel.create({
+      pair_key: pairKey(from, body.to),
+      from,
+      to: body.to,
+      text: body.text.trim().slice(0, 2000),
+    });
+
+    const payload = {
+      id: String(saved._id),
+      from,
+      to: body.to,
+      text: saved.text,
+      created_at: saved.created_at,
+    };
+    this.server.to(`user:${body.to}`).emit('chat_new', payload);
+    this.server.to(`user:${from}`).emit('chat_new', payload);
+
+    if (!this.online.has(body.to)) {
+      const sender = await this.userModel.findById(from).lean();
+      await this.notifications.push(
+        body.to,
+        from,
+        'message',
+        `${sender?.first_name ?? 'Someone'} sent you a message`,
+      );
+    }
   }
 
-  private getSocket(id: string): Socket | undefined {
-    return this.server.sockets.get(id);
+  @SubscribeMessage('chat_typing')
+  typing(@ConnectedSocket() client: Socket, @MessageBody() body: { to: string; typing: boolean }) {
+    const from = client.data.userId as string;
+    if (!from || !body?.to) return;
+    this.server.to(`user:${body.to}`).emit('chat_typing', { from, typing: !!body.typing });
+  }
+
+  @SubscribeMessage('chat_read')
+  async read(@ConnectedSocket() client: Socket, @MessageBody() body: { withUser: string }) {
+    const me = client.data.userId as string;
+    if (!me || !body?.withUser) return;
+    await this.messageModel.updateMany(
+      { pair_key: pairKey(me, body.withUser), to: me, read: false },
+      { $set: { read: true } },
+    );
+    this.server.to(`user:${body.withUser}`).emit('chat_read', { by: me });
+  }
+
+  @SubscribeMessage('call_invite')
+  async invite(@ConnectedSocket() client: Socket, @MessageBody() body: { to: string }) {
+    const from = client.data.userId as string;
+    if (!from || !body?.to) return;
+
+    if (!(await this.social.areFriends(from, body.to))) {
+      client.emit('error_msg', { message: 'You can only call people who follow you back.' });
+      return;
+    }
+    if (!this.online.has(body.to)) {
+      client.emit('call_unavailable', { reason: 'User is offline' });
+      return;
+    }
+
+    const callId = randomBytes(8).toString('hex');
+    this.calls.set(callId, { a: from, b: body.to });
+    client.join(`call:${callId}`);
+
+    const caller = await this.card(from);
+    this.server.to(`user:${body.to}`).emit('call_ring', { callId, from: caller });
+    client.emit('call_ringing', { callId });
+    await this.notifications.push(
+      body.to,
+      from,
+      'call',
+      `${caller?.firstName ?? 'Someone'} is calling you`,
+    );
+    this.logger.log(`call ${callId}: ${from} → ${body.to}`);
+  }
+
+  @SubscribeMessage('call_accept')
+  async accept(@ConnectedSocket() client: Socket, @MessageBody() body: { callId: string }) {
+    const me = client.data.userId as string;
+    const pair = this.calls.get(body?.callId);
+    if (!pair || (pair.a !== me && pair.b !== me)) return;
+
+    client.join(`call:${body.callId}`);
+    const other = pair.a === me ? pair.b : pair.a;
+    const [meCard, otherCard] = await Promise.all([this.card(me), this.card(other)]);
+    this.server.to(`user:${other}`).emit('call_accepted', { callId: body.callId, partner: meCard });
+    client.emit('call_accepted', { callId: body.callId, partner: otherCard });
+  }
+
+  @SubscribeMessage('call_reject')
+  reject(@ConnectedSocket() client: Socket, @MessageBody() body: { callId: string }) {
+    const me = client.data.userId as string;
+    const pair = this.calls.get(body?.callId);
+    if (!pair) return;
+    const other = pair.a === me ? pair.b : pair.a;
+    this.server.to(`user:${other}`).emit('call_end', { callId: body.callId, reason: 'declined' });
+    this.calls.delete(body.callId);
+  }
+
+  @SubscribeMessage('call_frame')
+  frame(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { callId: string; data: string; muted?: boolean },
+  ) {
+    const me = client.data.userId as string;
+    const pair = this.calls.get(body?.callId);
+    if (!pair || (pair.a !== me && pair.b !== me)) return;
+    const other = pair.a === me ? pair.b : pair.a;
+    this.server.to(`user:${other}`).emit('call_frame', {
+      callId: body.callId,
+      data: body.data,
+      muted: !!body.muted,
+    });
+  }
+
+  @SubscribeMessage('call_end')
+  end(@ConnectedSocket() client: Socket, @MessageBody() body: { callId: string }) {
+    const me = client.data.userId as string;
+    const pair = this.calls.get(body?.callId);
+    if (!pair) return;
+    const other = pair.a === me ? pair.b : pair.a;
+    this.server.to(`user:${other}`).emit('call_end', { callId: body.callId, reason: 'ended' });
+    this.calls.delete(body.callId);
+  }
+
+  private async broadcastPresence(userId: string, isOnline: boolean) {
+    try {
+      const friends = await this.social.friends(userId);
+      for (const f of friends) {
+        this.server.to(`user:${(f as any).id}`).emit('presence', { userId, online: isOnline });
+      }
+    } catch {
+    }
   }
 
   private async card(userId: string) {
@@ -172,6 +232,7 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return {
       id: String(u._id),
       firstName: u.first_name,
+      lastName: u.last_name,
       photoUrl: primary?.url ?? null,
     };
   }

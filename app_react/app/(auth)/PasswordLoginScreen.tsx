@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api } from "../../lib/api";
+import DismissKeyboard from "../components/Shared/DismissKeyboard";
 
 export default function PasswordLoginScreen() {
   const router = useRouter();
@@ -103,7 +104,7 @@ export default function PasswordLoginScreen() {
         backgroundColor="#fff"
         barStyle="dark-content"
       />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <DismissKeyboard>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={{ flex: 1 }}
@@ -170,7 +171,7 @@ export default function PasswordLoginScreen() {
             </Pressable>
           </View>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </DismissKeyboard>
     </SafeAreaView>
   );
 }

@@ -2,13 +2,11 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
 import { api } from "../../lib/api";
 
-/** SecureStore key for the persisted auth token (shared with the adapter hook). */
 export const TOKEN_KEY = "auth_token";
 
 interface AuthState {
   authToken: string | null;
   user: any | null;
-  /** True while we restore a saved session on launch. */
   isBootstrapping: boolean;
 }
 
@@ -18,10 +16,7 @@ const initialState: AuthState = {
   isBootstrapping: true,
 };
 
-/**
- * Restore a saved session on app launch: read the token from SecureStore and
- * validate it via /me. Invalid/expired tokens are dropped.
- */
+
 export const bootstrapSession = createAsyncThunk("auth/bootstrap", async () => {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);
   if (!token) return null;

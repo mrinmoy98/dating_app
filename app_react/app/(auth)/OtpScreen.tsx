@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
 import { api } from '../../lib/api';
+import DismissKeyboard from '../components/Shared/DismissKeyboard';
 import { FieldError } from '../components/Shared/FormField';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -77,7 +78,7 @@ export default function OtpScreen() {
   const isComplete = otp.length === 4;
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+    <DismissKeyboard>
       <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
         <View style={styles.container}>
           <Text style={styles.header}>Sent you an{'\n'}OTP!</Text>
@@ -179,7 +180,7 @@ export default function OtpScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </TouchableWithoutFeedback>
+    </DismissKeyboard>
 
   );
 }

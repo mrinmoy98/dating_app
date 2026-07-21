@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRegistration } from '../../context/RegistrationContext';
 import { api } from '../../lib/api';
+import DismissKeyboard from '../components/Shared/DismissKeyboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EmailOtpScreen() {
@@ -60,7 +61,7 @@ export default function EmailOtpScreen() {
   const isComplete = otp.length === 4;
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+    <DismissKeyboard>
       <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
         <View style={styles.container}>
           <Text style={styles.header}>Verify your email</Text>
@@ -152,7 +153,7 @@ export default function EmailOtpScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </TouchableWithoutFeedback>
+    </DismissKeyboard>
   );
 }
 

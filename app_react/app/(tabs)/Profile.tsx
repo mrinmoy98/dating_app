@@ -14,6 +14,7 @@ import { useAppDispatch } from '../../store/hooks';
 import { setUser } from '../../store/slices/authSlice';
 import ProfileSection from '../components/ProfileSection';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
+import AppHeader from '../components/Shared/AppHeader';
 import Button from '../components/Shared/Button';
 import Typography from '../components/Shared/Typography';
 
@@ -127,12 +128,14 @@ export default function ProfileScreen() {
         barStyle="dark-content"
       />
 
-      <View style={styles.header}>
-        <Typography variant="title">Profile</Typography>
-        <Pressable style={styles.settingsButton} onPress={() => setSettingsVisible(true)}>
-          <Ionicons name="settings-outline" size={24} color={Colors.text} />
-        </Pressable>
-      </View>
+      <AppHeader
+        title="Profile"
+        rightExtra={
+          <Pressable style={styles.settingsButton} onPress={() => setSettingsVisible(true)}>
+            <Ionicons name="settings-outline" size={23} color={Colors.text} />
+          </Pressable>
+        }
+      />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.profileHeader}>
@@ -213,6 +216,19 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Typography style={styles.prefTitle}>Dating Preferences</Typography>
             <Typography style={styles.prefSub}>Set who you want to meet & find matches</Typography>
+          </View>
+          <Feather name="chevron-right" size={22} color={Colors.gray} />
+        </Pressable>
+
+        {/* Notifications live in the app header (heart icon), not here. */}
+
+        <Pressable style={styles.prefCard} onPress={() => router.push('/(profile)/Likes' as any)}>
+          <View style={styles.prefIcon}>
+            <Feather name="heart" size={20} color={Colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography style={styles.prefTitle}>Likes</Typography>
+            <Typography style={styles.prefSub}>People you liked & who liked you</Typography>
           </View>
           <Feather name="chevron-right" size={22} color={Colors.gray} />
         </Pressable>
@@ -340,17 +356,11 @@ const styles = StyleSheet.create({
     // backgroundColor: '#f5f5f5',
     backgroundColor: "#fff",
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-    position: 'relative',
-  },
   settingsButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,

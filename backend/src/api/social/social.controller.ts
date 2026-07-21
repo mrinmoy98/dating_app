@@ -27,6 +27,25 @@ export class SocialController {
     return this.social.followers(user.sub);
   }
 
+  @Get('follow/friends')
+  @ApiOperation({ summary: 'Mutual follows — people you can chat / call' })
+  friends(@CurrentUser() user: { sub: string }) {
+    return this.social.friends(user.sub);
+  }
+
+  // ---- discovery lists ----
+  @Get('users/new')
+  @ApiOperation({ summary: 'Newest members you are not following yet' })
+  newUsers(@CurrentUser() user: { sub: string }) {
+    return this.social.newUsers(user.sub);
+  }
+
+  @Get('users/by-interest')
+  @ApiOperation({ summary: 'People who share your interests' })
+  byInterest(@CurrentUser() user: { sub: string }) {
+    return this.social.byInterest(user.sub);
+  }
+
   @Post('follow/:id')
   @HttpCode(200)
   @ApiOperation({ summary: 'Follow a user' })
@@ -38,6 +57,12 @@ export class SocialController {
   @ApiOperation({ summary: 'Unfollow a user' })
   unfollow(@CurrentUser() user: { sub: string }, @Param('id') id: string) {
     return this.social.unfollow(user.sub, id);
+  }
+
+  @Delete('followers/:id')
+  @ApiOperation({ summary: 'Remove someone from my followers' })
+  removeFollower(@CurrentUser() user: { sub: string }, @Param('id') id: string) {
+    return this.social.removeFollower(user.sub, id);
   }
 
   // ---- profile view (match/user profile) ----

@@ -38,3 +38,10 @@ const styles = StyleSheet.create({
   req: { color: ERROR_RED, fontWeight: "700" },
   error: { color: ERROR_RED, fontSize: 12.5, marginTop: 6, fontWeight: "500" },
 });
+
+/**
+ * This file lives under app/, so expo-router treats it as a route and requires
+ * a default export. It's a component library, not a screen — export the label
+ * as the default to satisfy the router.
+ */
+export default FieldLabel;

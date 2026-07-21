@@ -8,9 +8,7 @@ import type {
   VerifyOtpResult,
 } from "./types";
 
-/**
- * Authentication: phone/email OTP onboarding, registration, and password login.
- */
+
 export const authApi = {
   sendOtp(phone: string) {
     return http.post<SendOtpResult>(ENDPOINTS.auth.sendOtp, { phone });
@@ -36,12 +34,10 @@ export const authApi = {
     return http.post<AuthResult>(ENDPOINTS.auth.register, payload, registrationToken);
   },
 
-  /** Log in with email/phone + password (alternative to OTP). */
   loginPassword(identifier: string, password: string) {
     return http.post<AuthResult>(ENDPOINTS.auth.loginPassword, { identifier, password });
   },
 
-  /** Set or change the account password (requires auth token). */
   setPassword(password: string, token: string) {
     return http.post<{ success: boolean; message: string }>(
       ENDPOINTS.auth.setPassword,

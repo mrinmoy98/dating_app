@@ -11,7 +11,6 @@ const initialState: MatchState = {
   loading: false,
 };
 
-/** Load the current user's matches from the backend. */
 export const fetchMatches = createAsyncThunk("match/fetch", async (token: string) => {
   return await api.matches(token);
 });
@@ -20,7 +19,6 @@ const matchSlice = createSlice({
   name: "match",
   initialState,
   reducers: {
-    /** Add a freshly-made match (from a swipe) to the top of the list. */
     addMatch(state, action: PayloadAction<MatchUser>) {
       if (!state.matches.some((m) => m.matchId === action.payload.matchId)) {
         state.matches.unshift(action.payload);

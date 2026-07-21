@@ -77,12 +77,14 @@ export default function ProfileCard({ profile, onPress }: ProfileCardProps) {
         </View>
       </LinearGradient>
 
-      {profile.distance && (
+      {/* `!= null` (not a truthy check) — a distance of 0 would otherwise render
+          the number 0 as a bare text node and crash on native. */}
+      {profile.distance != null && (
         <View style={styles.distanceBadge}>
-          {/* <MapPin size={12} color={Colors.primary} style={{ marginRight: 4 }} /> */}
-                <EvilIcons name="location" size={12} color={Colors.primary} style={{ marginRight: 4 }} />
-
-          <Typography style={styles.distanceText}>{profile.distance} miles away</Typography>
+          <EvilIcons name="location" size={12} color={Colors.primary} style={{ marginRight: 4 }} />
+          <Typography style={styles.distanceText}>
+            {profile.distance < 1 ? "Nearby" : `${profile.distance} km away`}
+          </Typography>
         </View>
       )}
 

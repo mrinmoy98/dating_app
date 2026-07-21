@@ -12,6 +12,7 @@ import { addMatch } from "../../store/slices/matchSlice";
 import ProfileCard from "../components/ProfileCard";
 import ProfileDetails from "../components/ProfileDetails";
 import ActionButton from "../components/Shared/ActionButton";
+import AppHeader from "../components/Shared/AppHeader";
 import Typography from "../components/Shared/Typography";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -21,7 +22,7 @@ export default function Discover() {
   const dispatch = useAppDispatch();
   const { authToken } = useRegistration();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
   // Real candidates from the backend when logged in; mock data for dev preview.
   const [profiles, setProfiles] = useState<any[]>(mockProfiles);
   const [loading, setLoading] = useState(false);
@@ -138,6 +139,25 @@ export default function Discover() {
     }).start();
   };
 
+  /** Follow the person shown in the details modal (mutual follow unlocks chat/call). */
+  const followProfile = async (profile: any) => {
+    if (!authToken || !profile?.id) return;
+    try {
+      const res = await api.follow(profile.id, authToken);
+      setSelectedProfile((p: any) =>
+        p && p.id === profile.id ? { ...p, is_following: true, is_friend: res?.is_friend } : p,
+      );
+      Alert.alert(
+        res?.is_friend ? "You're now friends! 🎉" : "Followed ✅",
+        res?.is_friend
+          ? "You follow each other — chat & video call are unlocked."
+          : `You are now following ${profile.firstName ?? "them"}.`,
+      );
+    } catch (e: any) {
+      Alert.alert("Could not follow", e?.message ?? "Please try again.");
+    }
+  };
+
    const handleProfilePress = (profile:any) => {
     setSelectedProfile(profile);
   };
@@ -238,9 +258,7 @@ export default function Discover() {
         backgroundColor="#fff"
         barStyle="dark-content"
       />
-      <View style={styles.header}>
-        <Typography variant="title">Discover</Typography>
-      </View>
+      <AppHeader title="Discover" />
 
       <View style={styles.cardContainer}>{renderProfiles()}</View>
 
@@ -268,6 +286,9 @@ export default function Discover() {
           profile={selectedProfile}
           visible={!!selectedProfile}
           onClose={() => setSelectedProfile(null)}
+          onPass={swipeLeft}
+          onLike={swipeRight}
+          onFollow={() => followProfile(selectedProfile)}
         />
       )}
     </SafeAreaView>
@@ -279,10 +300,6 @@ const styles = StyleSheet.create({
     flex: 1,
     // backgroundColor: "#f5f5f5",
     backgroundColor: "#fff",
-  },
-  header: {
-    padding: 16,
-    alignItems: "center",
   },
   cardContainer: {
     flex: 1,

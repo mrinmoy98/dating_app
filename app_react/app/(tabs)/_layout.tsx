@@ -27,13 +27,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="Live"
-        options={{
-          tabBarLabel: "Live",
-          tabBarIcon: ({ color, size }) => <Feather name="video" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="Matches"
         options={{
           tabBarIcon: ({ color, size }) => <Entypo name="heart-outlined" size={size} color={color} />,
