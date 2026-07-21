@@ -171,6 +171,11 @@ export interface ConnectionUser {
   state?: string | null;
   country?: string | null;
   video_url?: string | null;
+  // relationship flags (present on follow list / follower list rows)
+  is_following?: boolean;
+  follows_me?: boolean;
+  is_friend?: boolean;
+  shared_interests?: string[];
 }
 
 export interface UserProfile extends ConnectionUser {

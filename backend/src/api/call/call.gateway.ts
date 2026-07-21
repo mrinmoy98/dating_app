@@ -18,24 +18,13 @@ import { User } from '../../entity/user.entity';
 import { NotificationService } from '../notification/notification.service';
 import { SocialService } from '../social/social.service';
 
-/**
- * Realtime hub — pure Socket.IO (no WebRTC).
- *
- *  CHAT   : chat_send / chat_new / chat_typing / chat_read
- *  CALL   : call_invite → call_ring → call_accept | call_reject → call_frame → call_end
- *           Video is streamed as periodic camera frames (base64 JPEG) over the
- *           socket, so it works in Expo Go without any native module.
- *
- * Everything requires the two users to be FRIENDS (mutual follow).
- */
+
 @WebSocketGateway({ namespace: '/rt', cors: { origin: true } })
 export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Namespace;
   private readonly logger = new Logger('RealtimeGateway');
 
-  /** userId → socket ids (a user may have several devices open). */
   private online = new Map<string, Set<string>>();
-  /** callId → { a, b } user ids. */
   private calls = new Map<string, { a: string; b: string }>();
 
   constructor(
@@ -45,13 +34,11 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @InjectModel('User') private readonly userModel: Model<User>,
     @InjectModel('Message') private readonly messageModel: Model<Message>,
   ) {
-    // Let the notification service deliver rows live over this socket server.
-    this.notifications.registerEmitter((userId, payload) => {
-      this.server?.to(`user:${userId}`).emit('notification', payload);
+    this.notifications.registerEmitter((userId, event, payload) => {
+      this.server?.to(`user:${userId}`).emit(event, payload);
     });
   }
 
-  // ===================== connection =====================
   async handleConnection(client: Socket) {
     try {
       const token = (client.handshake.auth?.token ??
@@ -81,7 +68,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.online.delete(userId);
       this.broadcastPresence(userId, false);
     }
-    // End any call this user was in.
     for (const [callId, pair] of this.calls) {
       if (pair.a === userId || pair.b === userId) {
         const other = pair.a === userId ? pair.b : pair.a;
@@ -91,7 +77,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // ===================== chat =====================
   @SubscribeMessage('chat_send')
   async chatSend(
     @ConnectedSocket() client: Socket,
@@ -119,11 +104,9 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
       text: saved.text,
       created_at: saved.created_at,
     };
-    // Deliver to the recipient and echo to the sender's other devices.
     this.server.to(`user:${body.to}`).emit('chat_new', payload);
     this.server.to(`user:${from}`).emit('chat_new', payload);
 
-    // Notify only when the recipient isn't currently connected.
     if (!this.online.has(body.to)) {
       const sender = await this.userModel.findById(from).lean();
       await this.notifications.push(
@@ -153,7 +136,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`user:${body.withUser}`).emit('chat_read', { by: me });
   }
 
-  // ===================== calls =====================
   @SubscribeMessage('call_invite')
   async invite(@ConnectedSocket() client: Socket, @MessageBody() body: { to: string }) {
     const from = client.data.userId as string;
@@ -207,7 +189,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.calls.delete(body.callId);
   }
 
-  /** Relay one camera frame (base64 JPEG) to the other side of the call. */
   @SubscribeMessage('call_frame')
   frame(
     @ConnectedSocket() client: Socket,
@@ -234,8 +215,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.calls.delete(body.callId);
   }
 
-  // ===================== helpers =====================
-  /** Tell this user's friends that they came online / went offline. */
   private async broadcastPresence(userId: string, isOnline: boolean) {
     try {
       const friends = await this.social.friends(userId);
@@ -243,7 +222,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.server.to(`user:${(f as any).id}`).emit('presence', { userId, online: isOnline });
       }
     } catch {
-      /* presence is best-effort */
     }
   }
 

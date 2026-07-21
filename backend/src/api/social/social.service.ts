@@ -167,19 +167,37 @@ export class SocialService {
   }
 
   async following(userId: string) {
-    const rows = await this.followModel
-      .find({ follower: userId })
-      .sort({ created_at: -1 })
-      .populate('following');
-    return rows.map((r) => this.shape(r.following as unknown as User)).filter(Boolean);
+    const [rows, followMe] = await Promise.all([
+      this.followModel.find({ follower: userId }).sort({ created_at: -1 }).populate('following'),
+      this.followModel.find({ following: userId }).select('follower').lean(),
+    ]);
+    const followsMeIds = new Set(followMe.map((f) => String(f.follower)));
+    return rows
+      .map((r) => this.shape(r.following as unknown as User))
+      .filter(Boolean)
+      .map((u) => ({
+        ...u,
+        is_following: true,
+        follows_me: followsMeIds.has(u!.id),
+        is_friend: followsMeIds.has(u!.id),
+      }));
   }
 
   async followers(userId: string) {
-    const rows = await this.followModel
-      .find({ following: userId })
-      .sort({ created_at: -1 })
-      .populate('follower');
-    return rows.map((r) => this.shape(r.follower as unknown as User)).filter(Boolean);
+    const [rows, iFollow] = await Promise.all([
+      this.followModel.find({ following: userId }).sort({ created_at: -1 }).populate('follower'),
+      this.followModel.find({ follower: userId }).select('following').lean(),
+    ]);
+    const iFollowIds = new Set(iFollow.map((f) => String(f.following)));
+    return rows
+      .map((r) => this.shape(r.follower as unknown as User))
+      .filter(Boolean)
+      .map((u) => ({
+        ...u,
+        follows_me: true,
+        is_following: iFollowIds.has(u!.id),
+        is_friend: iFollowIds.has(u!.id),
+      }));
   }
 
   private shape(u: User | null) {

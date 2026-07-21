@@ -4,30 +4,24 @@ import { Model } from 'mongoose';
 import { Notification, NotificationType } from '../../entity/notification.entity';
 import { User } from '../../entity/user.entity';
 
-/**
- * In-app notifications. `push()` stores the row and (when the realtime gateway
- * has registered an emitter) delivers it live over the socket.
- */
 @Injectable()
 export class NotificationService {
-  /** Set by CallGateway so we can push live events without a circular import. */
-  private emitter: ((userId: string, payload: any) => void) | null = null;
+  private emitter: ((userId: string, event: string, payload: any) => void) | null = null;
 
   constructor(
     @InjectModel('Notification') private readonly model: Model<Notification>,
     @InjectModel('User') private readonly userModel: Model<User>,
   ) {}
 
-  registerEmitter(fn: (userId: string, payload: any) => void) {
+  registerEmitter(fn: (userId: string, event: string, payload: any) => void) {
     this.emitter = fn;
   }
 
-  /** Create a notification for `userId` caused by `fromId`. */
   async push(userId: string, fromId: string | null, type: NotificationType, text: string) {
-    if (fromId && String(userId) === String(fromId)) return; // never notify yourself
+    if (fromId && String(userId) === String(fromId)) return;
     const row = await this.model.create({ user: userId, from: fromId, type, text });
     const payload = await this.shape(row);
-    this.emitter?.(String(userId), payload);
+    this.emitter?.(String(userId), 'notification', payload);
     return payload;
   }
 
@@ -46,6 +40,8 @@ export class NotificationService {
 
   async markAllRead(userId: string) {
     await this.model.updateMany({ user: userId, read: false }, { $set: { read: true } });
+    // Clears the header badge on every device this user is signed in on.
+    this.emitter?.(String(userId), 'notifications_read', { count: 0 });
     return { success: true };
   }
 
@@ -60,7 +56,6 @@ export class NotificationService {
   }
 
   private async shape(row: Notification) {
-    // `from` may be a populated doc or a raw id.
     let from: any = row.from;
     if (from && !from.first_name && from._id) from = await this.userModel.findById(from).lean();
     else if (from && typeof from === 'object' && !from.photos && from._id === undefined) from = null;

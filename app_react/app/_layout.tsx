@@ -1,7 +1,8 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, Platform, StatusBar, View } from "react-native";
 import { Provider } from "react-redux";
+import { getSocket } from "../lib/socket";
 import { store } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { bootstrapSession } from "../store/slices/authSlice";
@@ -34,12 +35,35 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
  */
 function RootNavigator() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { authToken, isBootstrapping } = useAppSelector((s) => s.auth);
 
   // Restore any saved session once on launch.
   useEffect(() => {
     dispatch(bootstrapSession());
   }, [dispatch]);
+
+  // Ring incoming calls from anywhere in the app (app-wide listener).
+  useEffect(() => {
+    if (!authToken) return;
+    const socket = getSocket(authToken);
+    const onRing = ({ callId, from }: any) => {
+      router.push({
+        pathname: "/call/[id]",
+        params: {
+          id: from?.id,
+          name: from?.firstName ?? "Caller",
+          photo: from?.photoUrl ?? "",
+          callId,
+          incoming: "1",
+        },
+      } as any);
+    };
+    socket.on("call_ring", onRing);
+    return () => {
+      socket.off("call_ring", onRing);
+    };
+  }, [authToken, router]);
 
   if (isBootstrapping) {
     return (

@@ -14,6 +14,7 @@ import { useAppDispatch } from '../../store/hooks';
 import { setUser } from '../../store/slices/authSlice';
 import ProfileSection from '../components/ProfileSection';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
+import AppHeader from '../components/Shared/AppHeader';
 import Button from '../components/Shared/Button';
 import Typography from '../components/Shared/Typography';
 
@@ -36,16 +37,6 @@ export default function ProfileScreen() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Unread notification badge (refreshed whenever this tab mounts).
-  useEffect(() => {
-    if (!authToken) return;
-    api
-      .unreadCount(authToken)
-      .then((r) => setUnreadCount(r?.count ?? 0))
-      .catch(() => { });
-  }, [authToken]);
 
   useEffect(() => {
     if (!authToken) return;
@@ -137,12 +128,14 @@ export default function ProfileScreen() {
         barStyle="dark-content"
       />
 
-      <View style={styles.header}>
-        <Typography variant="title">Profile</Typography>
-        <Pressable style={styles.settingsButton} onPress={() => setSettingsVisible(true)}>
-          <Ionicons name="settings-outline" size={24} color={Colors.text} />
-        </Pressable>
-      </View>
+      <AppHeader
+        title="Profile"
+        rightExtra={
+          <Pressable style={styles.settingsButton} onPress={() => setSettingsVisible(true)}>
+            <Ionicons name="settings-outline" size={23} color={Colors.text} />
+          </Pressable>
+        }
+      />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.profileHeader}>
@@ -227,21 +220,7 @@ export default function ProfileScreen() {
           <Feather name="chevron-right" size={22} color={Colors.gray} />
         </Pressable>
 
-        <Pressable style={styles.prefCard} onPress={() => router.push('/(profile)/Notifications' as any)}>
-          <View style={styles.prefIcon}>
-            <Feather name="bell" size={20} color={Colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Typography style={styles.prefTitle}>Notifications</Typography>
-            <Typography style={styles.prefSub}>Follows, likes, matches & messages</Typography>
-          </View>
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Typography style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Typography>
-            </View>
-          )}
-          <Feather name="chevron-right" size={22} color={Colors.gray} />
-        </Pressable>
+        {/* Notifications live in the app header (heart icon), not here. */}
 
         <Pressable style={styles.prefCard} onPress={() => router.push('/(profile)/Likes' as any)}>
           <View style={styles.prefIcon}>
@@ -377,17 +356,11 @@ const styles = StyleSheet.create({
     // backgroundColor: '#f5f5f5',
     backgroundColor: "#fff",
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-    position: 'relative',
-  },
   settingsButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
@@ -589,21 +562,6 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: Colors.darkGray,
     marginTop: 2,
-  },
-  badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    paddingHorizontal: 6,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
   },
   // ---- full-screen photo viewer ----
   viewerBackdrop: {

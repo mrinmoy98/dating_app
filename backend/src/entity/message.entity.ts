@@ -1,10 +1,5 @@
 import * as mongoose from 'mongoose';
 
-/**
- * A 1:1 chat message between two users who follow each other (friends).
- * `pair_key` is the two sorted user ids joined with "_" so a conversation is
- * cheap to query from either side.
- */
 export const MessageSchema = new mongoose.Schema(
   {
     pair_key: { type: String, required: true, index: true },

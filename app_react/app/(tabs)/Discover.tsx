@@ -12,6 +12,7 @@ import { addMatch } from "../../store/slices/matchSlice";
 import ProfileCard from "../components/ProfileCard";
 import ProfileDetails from "../components/ProfileDetails";
 import ActionButton from "../components/Shared/ActionButton";
+import AppHeader from "../components/Shared/AppHeader";
 import Typography from "../components/Shared/Typography";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -257,9 +258,7 @@ export default function Discover() {
         backgroundColor="#fff"
         barStyle="dark-content"
       />
-      <View style={styles.header}>
-        <Typography variant="title">Discover</Typography>
-      </View>
+      <AppHeader title="Discover" />
 
       <View style={styles.cardContainer}>{renderProfiles()}</View>
 
@@ -301,10 +300,6 @@ const styles = StyleSheet.create({
     flex: 1,
     // backgroundColor: "#f5f5f5",
     backgroundColor: "#fff",
-  },
-  header: {
-    padding: 16,
-    alignItems: "center",
   },
   cardContainer: {
     flex: 1,
