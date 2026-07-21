@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { CloudinaryService } from '../../common/services/cloudinary.service';
 import { Follow } from '../../entity/follow.entity';
 import { Reel } from '../../entity/reel.entity';
 import { User } from '../../entity/user.entity';
@@ -14,6 +15,7 @@ export class ReelService {
     @InjectModel('User') private readonly userModel: Model<User>,
     @InjectModel('Follow') private readonly followModel: Model<Follow>,
     private readonly notifications: NotificationService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(userId: string, dto: CreateReelDto) {
@@ -28,7 +30,6 @@ export class ReelService {
     return this.shape(reel, userId);
   }
 
-  /** Main feed — people you follow first, then everyone else. */
   async feed(userId: string, limit = 30) {
     const iFollow = await this.followModel.find({ follower: userId }).select('following').lean();
     const followingIds = iFollow.map((f) => String(f.following));
@@ -40,14 +41,12 @@ export class ReelService {
       .populate('user');
 
     const shaped = rows.map((r) => this.shape(r, userId)).filter(Boolean) as any[];
-    // Followed creators bubble to the top, order preserved inside each group.
     return [
       ...shaped.filter((r) => followingIds.includes(r.user.id)),
       ...shaped.filter((r) => !followingIds.includes(r.user.id)),
     ];
   }
 
-  /** Every reel posted by one user — powers the profile grid. */
   async byUser(viewerId: string, targetId: string, limit = 60) {
     const rows = await this.reelModel
       .find({ user: targetId, status: 'active' })
@@ -61,10 +60,6 @@ export class ReelService {
     return this.reelModel.countDocuments({ user: userId, status: 'active' });
   }
 
-  /**
-   * Toggle like; notifies the owner the first time someone likes it.
-   * $addToSet / $pull keep the count exact even if the user double-taps.
-   */
   async toggleLike(userId: string, reelId: string) {
     const reel = await this.reelModel.findById(reelId).select('likes user status');
     if (!reel || reel.status !== 'active') throw new NotFoundException('Reel not found');
@@ -103,6 +98,10 @@ export class ReelService {
     }
     reel.status = 'removed';
     await reel.save();
+
+    const publicId = this.cloudinary.publicIdFromUrl(reel.video_url);
+    if (publicId) await this.cloudinary.destroy(publicId, true);
+
     return { deleted: true, id: reelId };
   }
 

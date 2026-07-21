@@ -23,6 +23,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRegistration } from '../../context/RegistrationContext';
 import { api, type Reel } from '../../lib/api';
+import { confirmAction } from '../../lib/confirm';
 import { useAppDispatch } from '../../store/hooks';
 import { setUser } from '../../store/slices/authSlice';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
@@ -143,10 +144,17 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
-    reset();
-    router.replace('/landing');
-  };
+  const handleLogout = () =>
+    confirmAction({
+      title: 'Log out?',
+      message: "You'll need to sign in again to use your account.",
+      confirmLabel: 'Log out',
+      successTitle: null, // we navigate away immediately
+      onConfirm: () => {
+        reset();
+        router.replace('/landing');
+      },
+    });
 
   /** Camera icon on the avatar — pick, crop & upload a new profile photo. */
   const pickAndUploadPhoto = async () => {
@@ -205,20 +213,33 @@ export default function ProfileScreen() {
     setViewerIndex((i) => (i == null ? i : (i - 1 + photos.length) % photos.length));
   const showNext = () => setViewerIndex((i) => (i == null ? i : (i + 1) % photos.length));
 
-  const deleteReel = (reel: Reel) => {
-    Alert.alert('Delete this reel?', 'It will be removed from the feed and your profile.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          if (!authToken) return;
-          setMyReels((prev) => prev.filter((r) => r.id !== reel.id));
-          await api.deleteReel(reel.id, authToken).catch(() => loadReels());
-        },
+  const deleteReel = (reel: Reel) =>
+    confirmAction({
+      title: 'Delete this reel?',
+      message: 'It will be removed from the feed and your profile.',
+      successMessage: 'Your reel was deleted.',
+      onConfirm: async () => {
+        if (!authToken) return;
+        await api.deleteReel(reel.id, authToken);
+        setMyReels((prev) => prev.filter((r) => r.id !== reel.id));
       },
-    ]);
-  };
+    });
+
+  /** Remove one of my photos. */
+  const deletePhoto = (index: number) =>
+    confirmAction({
+      title: 'Delete photo?',
+      message: 'This photo will be removed from your profile.',
+      successMessage: 'Photo deleted.',
+      onConfirm: async () => {
+        if (!authToken) return;
+        const next = photos.filter((_, i) => i !== index);
+        const updated = await api.updateProfile({ photos: next }, authToken);
+        setRemote(updated);
+        dispatch(setUser(updated));
+        setViewerIndex(null);
+      },
+    });
 
   const backend = remote;
   const photos: string[] = backend?.photos?.length
@@ -553,9 +574,16 @@ export default function ProfileScreen() {
               <Text style={styles.viewerCounter}>
                 {viewerIndex != null ? `${viewerIndex + 1} / ${photos.length}` : ''}
               </Text>
-              <Pressable style={styles.viewerClose} onPress={() => setViewerIndex(null)}>
-                <Feather name="x" size={24} color="#fff" />
-              </Pressable>
+              <View style={styles.viewerActions}>
+                {viewerIndex != null && !!authToken && (
+                  <Pressable style={styles.viewerClose} onPress={() => deletePhoto(viewerIndex)}>
+                    <Feather name="trash-2" size={22} color="#ff6b6b" />
+                  </Pressable>
+                )}
+                <Pressable style={styles.viewerClose} onPress={() => setViewerIndex(null)}>
+                  <Feather name="x" size={24} color="#fff" />
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.viewerBody}>
@@ -821,6 +849,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   viewerCounter: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  viewerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   viewerClose: { padding: 6 },
   viewerBody: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   viewerImage: { width: '100%', height: '80%' },

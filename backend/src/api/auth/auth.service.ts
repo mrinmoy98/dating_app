@@ -12,6 +12,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { randomInt } from 'crypto';
 import { Model } from 'mongoose';
+import { CloudinaryService } from '../../common/services/cloudinary.service';
+import { UserSlugService } from '../../common/services/user-slug.service';
 import { Otp } from '../../entity/otp.entity';
 import { Swipe } from '../../entity/swipe.entity';
 import { User } from '../../entity/user.entity';
@@ -42,6 +44,8 @@ export class ApiAuthService {
     @InjectModel('User') private readonly userModel: Model<User>,
     @InjectModel('Otp') private readonly otpModel: Model<Otp>,
     @InjectModel('Swipe') private readonly swipeModel: Model<Swipe>,
+    private readonly slugs: UserSlugService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async sendOtp(rawPhone: string) {
@@ -117,7 +121,26 @@ export class ApiAuthService {
       await this.assertEmailAvailable(this.normalizeEmail(token.email), phone);
     }
 
+    // Media uploaded during signup sits in a temporary folder — move it under
+    // this user's own slug now that we know who they are.
+    const existing = await this.userModel.findOne({ phone }).select('slug');
+    const slug =
+      existing?.slug ||
+      (await this.slugs.generate(
+        [dto.first_name, dto.last_name].filter(Boolean).join(' ') || phone,
+      ));
+
+    const photoUrls = await Promise.all(
+      (dto.photos ?? []).map((url) =>
+        this.cloudinary.moveIntoUserFolder(url, slug, 'profile-images'),
+      ),
+    );
+    const videoUrl = dto.video_url
+      ? await this.cloudinary.moveIntoUserFolder(dto.video_url, slug, 'videos', true)
+      : null;
+
     const update = {
+      slug,
       phone,
       phone_verified: true,
       email: token.email ?? null,
@@ -148,12 +171,12 @@ export class ApiAuthService {
       smoking: dto.smoking ?? null,
       drinking: dto.drinking ?? null,
       relationship_goal: dto.relationship_goal ?? null,
-      photos: (dto.photos ?? []).map((url, i) => ({
+      photos: photoUrls.map((url, i) => ({
         url,
         position: i,
         is_primary: i === 0,
       })),
-      video_url: dto.video_url ?? null,
+      video_url: videoUrl,
       is_profile_complete: true,
       last_active_at: new Date(),
     };
@@ -241,6 +264,16 @@ export class ApiAuthService {
         position: i,
         is_primary: i === 0,
       }));
+
+      // Photos dropped from the list are deleted from storage too.
+      const kept = new Set(dto.photos);
+      const removed = (user.photos ?? []).map((p) => p.url).filter((url) => !kept.has(url));
+      await Promise.all(
+        removed.map(async (url) => {
+          const publicId = this.cloudinary.publicIdFromUrl(url);
+          if (publicId) await this.cloudinary.destroy(publicId);
+        }),
+      );
     }
 
     set.last_active_at = new Date();
@@ -516,6 +549,7 @@ export class ApiAuthService {
       family_details: user.family_details,
       address: user.address,
       has_password: !!user.password,
+      slug: user.slug,
       photos: user.photos,
       cover_url: user.cover_url,
       video_url: user.video_url,

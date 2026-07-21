@@ -17,10 +17,7 @@ export class SocialService {
     private readonly notifications: NotificationService,
   ) {}
 
-  /**
-   * Two users are "friends" when they follow EACH OTHER.
-   * Only friends may chat or video-call.
-   */
+
   async areFriends(a: string, b: string): Promise<boolean> {
     if (String(a) === String(b)) return false;
     const [x, y] = await Promise.all([
@@ -30,7 +27,6 @@ export class SocialService {
     return !!x && !!y;
   }
 
-  /** Mutual follows — the people you can chat / call. */
   async friends(userId: string) {
     const [iFollow, followMe] = await Promise.all([
       this.followModel.find({ follower: userId }).select('following').lean(),
@@ -45,7 +41,6 @@ export class SocialService {
     return users.map((u) => this.shape(u)).filter(Boolean);
   }
 
-  /** Newest members you haven't followed yet. */
   async newUsers(userId: string, limit = 30) {
     const iFollow = await this.followModel.find({ follower: userId }).select('following').lean();
     const exclude = [userId, ...iFollow.map((f) => String(f.following))];
@@ -60,7 +55,6 @@ export class SocialService {
     return users.map((u) => this.shape(u)).filter(Boolean);
   }
 
-  /** People who share at least one interest with you. */
   async byInterest(userId: string, limit = 30) {
     const me = await this.userModel.findById(userId).lean();
     if (!me) throw new NotFoundException('User not found');
@@ -79,7 +73,6 @@ export class SocialService {
       })
       .limit(limit);
 
-    // Most shared interests first.
     return users
       .map((u) => ({
         user: u,
@@ -165,16 +158,11 @@ export class SocialService {
     return { following: false, is_friend: false };
   }
 
-  /** Remove someone from MY followers (they stop following me). */
   async removeFollower(userId: string, followerId: string) {
     await this.followModel.deleteOne({ follower: followerId, following: userId });
     return { removed: true, id: followerId };
   }
 
-  /**
-   * Who `targetId` follows. Relationship flags are always relative to the
-   * VIEWER, so the same list works on your own profile and on someone else's.
-   */
   async following(targetId: string, viewerId = targetId) {
     const [rows, flags] = await Promise.all([
       this.followModel.find({ follower: targetId }).sort({ created_at: -1 }).populate('following'),
@@ -187,7 +175,6 @@ export class SocialService {
     );
   }
 
-  /** Who follows `targetId`. Flags are relative to the viewer — see above. */
   async followers(targetId: string, viewerId = targetId) {
     const [rows, flags] = await Promise.all([
       this.followModel.find({ following: targetId }).sort({ created_at: -1 }).populate('follower'),
@@ -200,7 +187,6 @@ export class SocialService {
     );
   }
 
-  /** The viewer's own follow graph, as two id sets. */
   private async viewerFlags(viewerId: string) {
     const [iFollow, followMe] = await Promise.all([
       this.followModel.find({ follower: viewerId }).select('following').lean(),
@@ -231,6 +217,7 @@ export class SocialService {
     const primary = u.photos?.find((p) => p.is_primary) ?? u.photos?.[0];
     return {
       id: String(u._id),
+      slug: u.slug ?? null,
       firstName: u.first_name,
       lastName: u.last_name,
       age: this.calcAge(u.dob),
@@ -247,7 +234,6 @@ export class SocialService {
       height_label: u.height_label,
       relationship_goal: u.relationship_goal,
       verified: !!(u.phone_verified && u.email_verified),
-      // ---- full profile details (shown on the profile screen) ----
       height_cm: u.height_cm,
       weight_kg: u.weight_kg,
       relationship_status: u.relationship_status,

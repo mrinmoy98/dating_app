@@ -7,7 +7,6 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -19,6 +18,7 @@ import {
 } from "react-native";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api, type Reel } from "../../lib/api";
+import { confirmAction } from "../../lib/confirm";
 import AppHeader from "../components/Shared/AppHeader";
 
 const { height, width } = Dimensions.get("window");
@@ -226,20 +226,17 @@ export default function Reels() {
     }
   };
 
-  const remove = (reel: Reel) => {
-    Alert.alert("Delete this reel?", "It will be removed from the feed and your profile.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          if (!authToken) return;
-          setReels((prev) => prev.filter((r) => r.id !== reel.id));
-          await api.deleteReel(reel.id, authToken).catch(() => load());
-        },
+  const remove = (reel: Reel) =>
+    confirmAction({
+      title: "Delete this reel?",
+      message: "It will be removed from the feed and your profile.",
+      successMessage: "Your reel was deleted.",
+      onConfirm: async () => {
+        if (!authToken) return;
+        await api.deleteReel(reel.id, authToken);
+        setReels((prev) => prev.filter((r) => r.id !== reel.id));
       },
-    ]);
-  };
+    });
 
   return (
     <View style={styles.container}>

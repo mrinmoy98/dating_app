@@ -61,6 +61,8 @@ export const UserSchema = new mongoose.Schema(
   {
     phone: { type: String, required: true, unique: true, trim: true },
     phone_verified: { type: Boolean, default: false },
+    /** Url-safe handle used for media folders, e.g. "sn/mrinmoy123/reels/...". */
+    slug: { type: String, default: null, lowercase: true, trim: true },
     email: { type: String, default: null, lowercase: true, trim: true },
     email_verified: { type: Boolean, default: false },
     password: { type: String, default: null, select: false },
@@ -109,6 +111,12 @@ UserSchema.index(
   { unique: true, partialFilterExpression: { email: { $type: 'string' } } },
 );
 
+// One media folder per user — slugs must never collide.
+UserSchema.index(
+  { slug: 1 },
+  { unique: true, partialFilterExpression: { slug: { $type: 'string' } } },
+);
+
 export interface UserPhoto {
   url: string;
   position: number;
@@ -153,6 +161,7 @@ export interface UserAddress {
 export interface User extends mongoose.Document {
   phone: string;
   phone_verified: boolean;
+  slug: string | null;
   email: string | null;
   email_verified: boolean;
   password?: string | null;

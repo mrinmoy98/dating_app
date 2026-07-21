@@ -40,7 +40,12 @@ export default function Users() {
   };
   const remove = async (u) => {
     if (!confirm(`Delete ${u.first_name || "this user"}? This cannot be undone.`)) return;
-    await api.deleteUser(u._id).catch((e) => alert(e.message));
+    try {
+      await api.deleteUser(u._id);
+      alert(`${u.first_name || "User"} deleted ✅`);
+    } catch (e) {
+      alert(e.message);
+    }
     load();
   };
 

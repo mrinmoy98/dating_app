@@ -5,7 +5,6 @@ import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Pressable,
@@ -19,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api, type ConnectionUser } from "../../lib/api";
+import { confirmAction } from "../../lib/confirm";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { fetchMatches } from "../../store/slices/matchSlice";
 import MatchCard from "../components/MatchCard";
@@ -98,27 +98,32 @@ export default function MatchesScreen() {
     }
   };
 
-  const unfollow = async (u: ConnectionUser) => {
-    if (!authToken) return;
-    setFollowing((prev) => prev.filter((x) => x.id !== u.id));
-    await api.unfollow(u.id, authToken).catch(() => loadPeople());
-  };
+  const unfollow = (u: ConnectionUser) =>
+    confirmAction({
+      title: "Unfollow?",
+      message: `You will stop following ${u.firstName ?? "this user"}. Chat & calls between you will be locked.`,
+      confirmLabel: "Unfollow",
+      successMessage: `You unfollowed ${u.firstName ?? "this user"}.`,
+      onConfirm: async () => {
+        if (!authToken) return;
+        await api.unfollow(u.id, authToken);
+        setFollowing((prev) => prev.filter((x) => x.id !== u.id));
+      },
+    });
 
   /** Remove someone from my followers — they stop following me. */
-  const removeFollower = (u: ConnectionUser) => {
-    Alert.alert("Remove follower?", `${u.firstName ?? "This user"} will no longer follow you.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          if (!authToken) return;
-          setFollowers((prev) => prev.filter((x) => x.id !== u.id));
-          await api.removeFollower(u.id, authToken).catch(() => loadPeople());
-        },
+  const removeFollower = (u: ConnectionUser) =>
+    confirmAction({
+      title: "Remove follower?",
+      message: `${u.firstName ?? "This user"} will no longer follow you.`,
+      confirmLabel: "Remove",
+      successMessage: `${u.firstName ?? "This user"} was removed from your followers.`,
+      onConfirm: async () => {
+        if (!authToken) return;
+        await api.removeFollower(u.id, authToken);
+        setFollowers((prev) => prev.filter((x) => x.id !== u.id));
       },
-    ]);
-  };
+    });
 
   const renderNewMatch = ({ item }: { item: MatchItem }) => (
     <Pressable style={styles.newMatchItem} onPress={() => router.push(`/user/${item.id}` as any)}>

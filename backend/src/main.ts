@@ -56,7 +56,7 @@ async function bootstrap() {
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-  // Serve uploaded profile photos at /uploads/*  (files live in backend/public/uploads).
+  // Static assets = the admin panel only. User media lives on Cloudinary.
   app.useStaticAssets(join(__dirname, '..', 'public'), { prefix: '/' });
 
   app.useGlobalPipes(

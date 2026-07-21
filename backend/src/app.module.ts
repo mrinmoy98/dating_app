@@ -9,6 +9,7 @@ import { AppController } from './app.controller';
 import { AdminModule } from './admin/admin.module';
 import { ApiModule } from './api/api.module';
 import { CallModule } from './api/call/call.module';
+import { CommonModule } from './common/common.module';
 import { CmsModule } from './cms/cms.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { CmsModule } from './cms/cms.module';
         };
       },
     }),
+    CommonModule,
     AdminModule,
     ApiModule,
     CmsModule,

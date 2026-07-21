@@ -53,7 +53,12 @@ export default function Banners() {
 
   const remove = async (b) => {
     if (!confirm("Delete this banner?")) return;
-    await api.deleteBanner(b._id).catch((e) => alert(e.message));
+    try {
+      await api.deleteBanner(b._id);
+      alert("Banner deleted ✅");
+    } catch (e) {
+      alert(e.message);
+    }
     load();
   };
   const toggle = async (b) => {

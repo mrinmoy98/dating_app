@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { MAX_LANGUAGES, useLanguages } from "../../hooks/useLanguages";
 import { api, type Gender } from "../../lib/api";
+import { confirmAction } from "../../lib/confirm";
 import { useAppDispatch } from "../../store/hooks";
 import { setUser } from "../../store/slices/authSlice";
 import ProfileSection from "../components/ProfileSection";
@@ -465,12 +466,16 @@ export default function EditProfileScreen() {
     }
   };
 
-  const removePhoto = (index: number) => {
-    Alert.alert("Delete photo?", "This photo will be removed from your profile. Save your changes to make it permanent.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => { setPhotos((prev) => prev.filter((_, i) => i !== index)); setViewerIndex(null); } },
-    ]);
-  };
+  const removePhoto = (index: number) =>
+    confirmAction({
+      title: "Delete photo?",
+      message: "This photo will be removed from your profile.",
+      successMessage: "Photo removed — tap Save to make it permanent.",
+      onConfirm: () => {
+        setPhotos((prev) => prev.filter((_, i) => i !== index));
+        setViewerIndex(null);
+      },
+    });
   const makePrimary = (index: number) => {
     setPhotos((prev) => { const next = [...prev]; const [pic] = next.splice(index, 1); next.unshift(pic); return next; });
     setViewerIndex(0);

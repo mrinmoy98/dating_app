@@ -58,7 +58,12 @@ export default function Languages() {
 
   const remove = async (l) => {
     if (!confirm(`Delete language "${l.title}"?`)) return;
-    await api.deleteLanguage(l._id).catch((e) => alert(e.message));
+    try {
+      await api.deleteLanguage(l._id);
+      alert(`"${l.title}" deleted ✅`);
+    } catch (e) {
+      alert(e.message);
+    }
     load();
   };
 

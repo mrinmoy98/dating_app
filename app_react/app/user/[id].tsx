@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api, type ConnectionUser, type Reel, type UserProfile } from "../../lib/api";
+import { confirmAction } from "../../lib/confirm";
 
 const { width } = Dimensions.get("window");
 const GRID_GAP = 8;
@@ -130,20 +131,39 @@ export default function UserProfileScreen() {
     }
   };
 
-  const toggleFollow = async () => {
+  const applyFollow = async (unfollowing: boolean) => {
     if (!profile || !authToken) return;
     setBusy(true);
-    const wasFollowing = profile.is_following;
     try {
-      if (wasFollowing) await api.unfollow(profile.id, authToken);
+      if (unfollowing) await api.unfollow(profile.id, authToken);
       else await api.follow(profile.id, authToken);
       // Re-fetch so is_friend / counts stay correct.
       const fresh = await api.getProfile(profile.id, authToken);
       setProfile(fresh);
-    } catch (e: any) {
-      Alert.alert("Something went wrong", e?.message ?? "Try again.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const toggleFollow = async () => {
+    if (!profile || !authToken) return;
+
+    // Unfollowing is destructive (it locks chat & calls) — always confirm first.
+    if (profile.is_following) {
+      await confirmAction({
+        title: "Unfollow?",
+        message: `You will stop following ${profile.firstName ?? "this user"}. Chat & video call between you will be locked.`,
+        confirmLabel: "Unfollow",
+        successMessage: `You unfollowed ${profile.firstName ?? "this user"}.`,
+        onConfirm: () => applyFollow(true),
+      });
+      return;
+    }
+
+    try {
+      await applyFollow(false);
+    } catch (e: any) {
+      Alert.alert("Something went wrong", e?.message ?? "Try again.");
     }
   };
 

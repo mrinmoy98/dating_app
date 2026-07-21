@@ -91,7 +91,7 @@ export default function AppHeader({
     if (!authToken || !pendingVideo) return;
     try {
       setUploading(true);
-      const url = await api.uploadVideo(pendingVideo, authToken);
+      const url = await api.uploadVideo(pendingVideo, authToken, "reels");
       if (!url) throw new Error("Upload failed");
       await api.createReel({ video_url: url, caption: caption.trim() }, authToken);
       setPendingVideo(null);

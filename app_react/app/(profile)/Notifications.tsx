@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api, type AppNotification, type NotificationType } from "../../lib/api";
+import { confirmAction } from "../../lib/confirm";
 import { getSocket } from "../../lib/socket";
 
 /** Icon + colour per notification type. */
@@ -72,10 +73,16 @@ export default function NotificationsScreen() {
     };
   }, [authToken]);
 
-  const remove = async (n: AppNotification) => {
-    setRows((prev) => prev.filter((x) => x.id !== n.id));
-    if (authToken) await api.deleteNotification(n.id, authToken).catch(() => {});
-  };
+  const remove = (n: AppNotification) =>
+    confirmAction({
+      title: "Delete notification?",
+      message: "It will be removed from your list.",
+      successMessage: "Notification deleted.",
+      onConfirm: async () => {
+        if (authToken) await api.deleteNotification(n.id, authToken);
+        setRows((prev) => prev.filter((x) => x.id !== n.id));
+      },
+    });
 
   const open = (n: AppNotification) => {
     if (!n.from) return;

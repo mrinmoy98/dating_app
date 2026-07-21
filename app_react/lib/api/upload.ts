@@ -22,9 +22,17 @@ export const uploadApi = {
     return data?.urls ?? [];
   },
 
-  async uploadVideo(uri: string, token: string): Promise<string> {
+  /**
+   * `kind` picks the Cloudinary folder: "reels" → <root>/<slug>/reels/…,
+   * "videos" (default) → <root>/<slug>/videos/… for the profile intro clip.
+   */
+  async uploadVideo(uri: string, token: string, kind: "reels" | "videos" = "videos"): Promise<string> {
     const form = fileForm("file", [uri], "video");
-    const data = await http.upload<{ url?: string }>(ENDPOINTS.upload.video, form, token);
+    const data = await http.upload<{ url?: string }>(
+      `${ENDPOINTS.upload.video}?kind=${kind}`,
+      form,
+      token,
+    );
     return data?.url ?? "";
   },
 };
