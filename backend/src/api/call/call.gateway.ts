@@ -13,8 +13,10 @@ import {
 import { randomBytes } from 'crypto';
 import { Model } from 'mongoose';
 import { Namespace, Socket } from 'socket.io';
-import { Message, pairKey } from '../../entity/message.entity';
+import { RealtimeService } from '../../common/services/realtime.service';
+import { MessageType } from '../../entity/message.entity';
 import { User } from '../../entity/user.entity';
+import { ChatService } from '../chat/chat.service';
 import { NotificationService } from '../notification/notification.service';
 import { SocialService } from '../social/social.service';
 
@@ -31,12 +33,16 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwt: JwtService,
     private readonly social: SocialService,
     private readonly notifications: NotificationService,
+    private readonly chat: ChatService,
+    private readonly realtime: RealtimeService,
     @InjectModel('User') private readonly userModel: Model<User>,
-    @InjectModel('Message') private readonly messageModel: Model<Message>,
   ) {
-    this.notifications.registerEmitter((userId, event, payload) => {
+    const emit = (userId: string, event: string, payload: any) => {
       this.server?.to(`user:${userId}`).emit(event, payload);
-    });
+    };
+    this.notifications.registerEmitter(emit);
+    // Lets REST controllers (multipart chat upload) push events and read presence.
+    this.realtime.register(emit, (userId) => this.online.has(userId));
   }
 
   async handleConnection(client: Socket) {
@@ -54,6 +60,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.emit('ready', { userId });
       this.broadcastPresence(userId, true);
+      // Anything queued while they were away is now on their device → double tick.
+      await this.chat.markDelivered(userId).catch(() => {});
     } catch {
       client.disconnect(true);
     }
@@ -77,44 +85,42 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  /**
+   * Plain text, or a message whose attachment was already uploaded via
+   * `POST /api/chat/send`-style multipart and is being referenced by URL.
+   */
   @SubscribeMessage('chat_send')
   async chatSend(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { to: string; text: string },
+    @MessageBody()
+    body: { to: string; text?: string; type?: MessageType; attachment?: any },
   ) {
     const from = client.data.userId as string;
-    if (!from || !body?.to || !body?.text?.trim()) return;
-
-    if (!(await this.social.areFriends(from, body.to))) {
-      client.emit('error_msg', { message: 'You can only chat with people who follow you back.' });
-      return;
+    if (!from || !body?.to) return;
+    try {
+      await this.chat.send(from, body);
+    } catch (e: any) {
+      client.emit('error_msg', { message: e?.message ?? 'Could not send message' });
     }
+  }
 
-    const saved = await this.messageModel.create({
-      pair_key: pairKey(from, body.to),
-      from,
-      to: body.to,
-      text: body.text.trim().slice(0, 2000),
-    });
+  @SubscribeMessage('chat_delete')
+  async chatDelete(@ConnectedSocket() client: Socket, @MessageBody() body: { id: string }) {
+    const me = client.data.userId as string;
+    if (!me || !body?.id) return;
+    try {
+      await this.chat.remove(me, body.id);
+    } catch (e: any) {
+      client.emit('error_msg', { message: e?.message ?? 'Could not delete message' });
+    }
+  }
 
-    const payload = {
-      id: String(saved._id),
-      from,
-      to: body.to,
-      text: saved.text,
-      created_at: saved.created_at,
-    };
-    this.server.to(`user:${body.to}`).emit('chat_new', payload);
-    this.server.to(`user:${from}`).emit('chat_new', payload);
-
-    if (!this.online.has(body.to)) {
-      const sender = await this.userModel.findById(from).lean();
-      await this.notifications.push(
-        body.to,
-        from,
-        'message',
-        `${sender?.first_name ?? 'Someone'} sent you a message`,
-      );
+  /** Initial online state when a client opens a thread (events cover the rest). */
+  @SubscribeMessage('presence_query')
+  presenceQuery(@ConnectedSocket() client: Socket, @MessageBody() body: { userIds: string[] }) {
+    const ids = Array.isArray(body?.userIds) ? body.userIds : [];
+    for (const id of ids) {
+      client.emit('presence', { userId: String(id), online: this.online.has(String(id)) });
     }
   }
 
@@ -129,11 +135,7 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async read(@ConnectedSocket() client: Socket, @MessageBody() body: { withUser: string }) {
     const me = client.data.userId as string;
     if (!me || !body?.withUser) return;
-    await this.messageModel.updateMany(
-      { pair_key: pairKey(me, body.withUser), to: me, read: false },
-      { $set: { read: true } },
-    );
-    this.server.to(`user:${body.withUser}`).emit('chat_read', { by: me });
+    await this.chat.markRead(me, body.withUser);
   }
 
   @SubscribeMessage('call_invite')

@@ -2,7 +2,13 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { UploadApiResponse, v2 as cloudinary } from 'cloudinary';
 
 /** Where an asset lives inside the project folder. */
-export type AssetKind = 'profile-images' | 'reels' | 'videos' | 'cms';
+export type AssetKind = 'profile-images' | 'reels' | 'videos' | 'cms' | 'chat';
+
+/**
+ * Cloudinary buckets assets by resource type. Audio (voice notes) rides on
+ * `video`; anything Cloudinary can't decode (pdf, docx, …) goes to `raw`.
+ */
+export type ResourceType = 'image' | 'video' | 'raw';
 
 /**
  * Every upload goes to Cloudinary under a predictable, project-scoped path:
@@ -58,17 +64,30 @@ export class CloudinaryService {
 
   async upload(
     buffer: Buffer,
-    opts: { slug: string; kind: AssetKind; video?: boolean },
-  ): Promise<{ url: string; publicId: string }> {
+    opts: {
+      slug: string;
+      kind: AssetKind;
+      video?: boolean;
+      /** Overrides `video`; needed for voice notes ('video') and documents ('raw'). */
+      resourceType?: ResourceType;
+      /** Keep the extension for `raw` assets — Cloudinary won't infer it. */
+      extension?: string;
+    },
+  ): Promise<{ url: string; publicId: string; duration?: number; width?: number; height?: number }> {
     const folder = this.folderFor(opts.slug, opts.kind);
-    const publicId = this.fileNameFor();
+    const resourceType: ResourceType =
+      opts.resourceType ?? (opts.video ? 'video' : 'image');
+    const ext = (opts.extension || '').replace(/^\./, '').toLowerCase();
+    const publicId = resourceType === 'raw' && ext
+      ? `${this.fileNameFor()}.${ext}`
+      : this.fileNameFor();
 
     const res = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder,
           public_id: publicId,
-          resource_type: opts.video ? 'video' : 'image',
+          resource_type: resourceType,
           overwrite: false,
           use_filename: false,
           unique_filename: false,
@@ -84,7 +103,13 @@ export class CloudinaryService {
       throw new InternalServerErrorException('Image upload failed. Please try again.');
     });
 
-    return { url: res.secure_url, publicId: res.public_id };
+    return {
+      url: res.secure_url,
+      publicId: res.public_id,
+      duration: res.duration,
+      width: res.width,
+      height: res.height,
+    };
   }
 
 
@@ -111,10 +136,13 @@ export class CloudinaryService {
     }
   }
 
-  async destroy(publicId: string, video = false) {
+  /** `video` is a shorthand; pass a ResourceType directly for audio ('video') or raw files. */
+  async destroy(publicId: string, video: boolean | ResourceType = false) {
     if (!this.enabled || !publicId) return;
+    const resourceType: ResourceType =
+      typeof video === 'string' ? video : video ? 'video' : 'image';
     await cloudinary.uploader
-      .destroy(publicId, { resource_type: video ? 'video' : 'image' })
+      .destroy(publicId, { resource_type: resourceType })
       .catch((e) => this.logger.warn(`Cloudinary delete failed for ${publicId}: ${e?.message}`));
   }
 

@@ -57,6 +57,8 @@ export default function MessagesScreen() {
     ])
       .then(([c, f]) => {
         setConversations(c || []);
+        // Seed presence from the payload; the socket keeps it fresh from here on.
+        setOnlineIds(new Set((c || []).filter((r) => r.online).map((r) => r.user.id)));
         // Message requests = people following you that you haven't followed back,
         // so chat is still locked until you follow them.
         setRequests((f || []).filter((u) => !u.is_following));
@@ -147,6 +149,24 @@ export default function MessagesScreen() {
     [conversations, onlineIds],
   );
 
+  /** Attachments have no text of their own — show what kind of media it was. */
+  const previewText = (last: ChatConversation["lastMessage"]) => {
+    if (!last) return "Say hi 👋";
+    if (last.text) return last.text;
+    switch (last.type) {
+      case "image":
+        return "📷 Photo";
+      case "video":
+        return "🎬 Video";
+      case "audio":
+        return "🎤 Voice message";
+      case "file":
+        return "📎 Attachment";
+      default:
+        return "Say hi 👋";
+    }
+  };
+
   // ---- Chat row ----
   const renderConversation = ({ item }: { item: ChatConversation }) => {
     const u = item.user;
@@ -164,7 +184,7 @@ export default function MessagesScreen() {
             {fullName(u)}
           </Text>
           <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
-            {item.lastMessage?.text ?? "Say hi 👋"}
+            {previewText(item.lastMessage)}
             {item.lastMessage ? `  ·  ${timeAgo(item.lastMessage.created_at)}` : ""}
           </Text>
         </View>
