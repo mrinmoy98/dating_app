@@ -15,6 +15,7 @@ import { MatchController } from './match/match.controller';
 import { MatchService } from './match/match.service';
 import { NotificationController } from './notification/notification.controller';
 import { NotificationService } from './notification/notification.service';
+import { UserSlugService } from '../common/services/user-slug.service';
 import { ReelController } from './reel/reel.controller';
 import { ReelService } from './reel/reel.service';
 import { SocialController } from './social/social.controller';
@@ -53,7 +54,14 @@ import { UploadController } from './upload/upload.controller';
     NotificationController,
     ReelController,
   ],
-  providers: [ApiAuthService, MatchService, SocialService, NotificationService, ReelService],
+  providers: [
+    ApiAuthService,
+    MatchService,
+    SocialService,
+    NotificationService,
+    ReelService,
+    UserSlugService,
+  ],
   // CallModule (socket gateway) needs friendship checks + live notifications.
   exports: [SocialService, NotificationService, MongooseModule],
 })

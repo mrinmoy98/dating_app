@@ -2,11 +2,17 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateReelDto {
-  @ApiProperty({ example: 'http://localhost:4000/uploads/1720000000-abc.mp4' })
+  @ApiProperty({
+    example:
+      'https://res.cloudinary.com/<cloud>/video/upload/v1/sn/mrinmoy123/reels/1784207246060_sangamX.mp4',
+  })
   @IsString()
   video_url: string;
 
-  @ApiPropertyOptional({ example: 'http://localhost:4000/uploads/1720000000-abc.jpg' })
+  @ApiPropertyOptional({
+    example:
+      'https://res.cloudinary.com/<cloud>/image/upload/v1/sn/mrinmoy123/reels/1784207246060_sangamX.jpg',
+  })
   @IsOptional()
   @IsString()
   thumbnail_url?: string;

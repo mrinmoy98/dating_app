@@ -40,7 +40,12 @@ export default function Pages() {
 
   const remove = async (p) => {
     if (!confirm(`Delete page "${p.title}"?`)) return;
-    await api.deletePage(p._id).catch((e) => alert(e.message));
+    try {
+      await api.deletePage(p._id);
+      alert(`"${p.title}" deleted ✅`);
+    } catch (e) {
+      alert(e.message);
+    }
     if (sel?._id === p._id) setSel(null);
     load();
   };

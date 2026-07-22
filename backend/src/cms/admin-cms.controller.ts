@@ -8,20 +8,18 @@ import {
   Patch,
   Post,
   Put,
-  Req,
+  ServiceUnavailableException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { randomBytes } from 'crypto';
-import { Request } from 'express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { CloudinaryService } from '../common/services/cloudinary.service';
 import { CmsService } from './cms.service';
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|svg|avif)$/i;
@@ -41,19 +39,17 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin', 'superadmin')
 export class AdminCmsController {
-  constructor(private readonly cms: CmsService) {}
+  constructor(
+    private readonly cms: CmsService,
+    private readonly cloudinary: CloudinaryService,
+  ) {}
 
-  // ---- Image upload (banners, logo, etc.) ----
   @Post('upload')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload an image (field "file"); returns its public URL' })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './public/uploads',
-        filename: (_req, file, cb) =>
-          cb(null, `${Date.now()}-${randomBytes(6).toString('hex')}${extname(file.originalname)}`),
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB
       fileFilter: (_req, file, cb) =>
         IMAGE_EXT.test(file.originalname)
@@ -61,12 +57,17 @@ export class AdminCmsController {
           : cb(new BadRequestException('Only image files are allowed'), false),
     }),
   )
-  upload(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
-    return { url: `${req.protocol}://${req.get('host')}/uploads/${file.filename}` };
+    if (!this.cloudinary.enabled) {
+      throw new ServiceUnavailableException(
+        'Media storage is not configured. Set CLOUDINARY_* in backend/.env',
+      );
+    }
+    const { url } = await this.cloudinary.upload(file.buffer, { slug: 'admin', kind: 'cms' });
+    return { url };
   }
 
-  // ---- Banners ----
   @Get('banners')
   @ApiOperation({ summary: 'List all banners' })
   listBanners() {
