@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRegistration } from "../../context/RegistrationContext";
 import { api, type ConnectionUser, type Reel, type UserProfile } from "../../lib/api";
 import { confirmAction } from "../../lib/confirm";
+import PressableScale from "../components/Shared/PressableScale";
 
 const { width } = Dimensions.get("window");
 const GRID_GAP = 8;
@@ -65,11 +66,16 @@ function StatTile({
   onPress?: () => void;
 }) {
   return (
-    <Pressable style={[styles.stat, !onPress && styles.statFlat]} onPress={onPress} disabled={!onPress}>
+    <PressableScale
+      style={[styles.stat, !onPress && styles.statFlat]}
+      scaleTo={0.94}
+      onPress={onPress}
+      disabled={!onPress}
+    >
       <Feather name={icon} size={15} color={Colors.primary} />
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -341,7 +347,7 @@ export default function UserProfileScreen() {
           {!profile.is_me && (
             <>
               <View style={styles.actionRow}>
-                <Pressable
+                <PressableScale
                   style={[styles.followBtn, profile.is_following && styles.followBtnGhost]}
                   onPress={toggleFollow}
                   disabled={busy}
@@ -364,20 +370,20 @@ export default function UserProfileScreen() {
                       </Text>
                     </>
                   )}
-                </Pressable>
+                </PressableScale>
 
-                <Pressable
+                <PressableScale
                   style={[styles.iconAction, !profile.is_friend && styles.disabled]}
                   onPress={profile.is_friend ? openMessage : undefined}
                 >
                   <Feather name="message-circle" size={19} color={Colors.primary} />
-                </Pressable>
-                <Pressable
+                </PressableScale>
+                <PressableScale
                   style={[styles.iconAction, !profile.is_friend && styles.disabled]}
                   onPress={profile.is_friend ? openCall : undefined}
                 >
                   <Feather name="video" size={19} color={Colors.primary} />
-                </Pressable>
+                </PressableScale>
               </View>
 
               {!profile.is_friend && (
@@ -403,16 +409,17 @@ export default function UserProfileScreen() {
               { key: "about", label: "About", icon: "info" },
             ] as const
           ).map((t) => (
-            <Pressable
+            <PressableScale
               key={t.key}
               style={[styles.segmentBtn, tab === t.key && styles.segmentBtnActive]}
+              scaleTo={0.95}
               onPress={() => setTab(t.key)}
             >
               <Feather name={t.icon} size={15} color={tab === t.key ? "#fff" : Colors.darkGray} />
               <Text style={[styles.segmentText, tab === t.key && styles.segmentTextActive]}>
                 {t.label}
               </Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
 

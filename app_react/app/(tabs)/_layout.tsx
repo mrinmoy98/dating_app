@@ -1,49 +1,46 @@
-import Colors from "@/data/Colors";
-import { AntDesign, Entypo, Feather, Octicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import type {
+  MaterialTopTabNavigationEventMap,
+  MaterialTopTabNavigationOptions,
+} from "@react-navigation/material-top-tabs";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import type { ParamListBase, TabNavigationState } from "@react-navigation/native";
+import { withLayoutContext } from "expo-router";
 import React from "react";
+import AppTabBar from "../components/Shared/AppTabBar";
+
+const { Navigator } = createMaterialTopTabNavigator();
+
+/**
+ * Instagram / Facebook style tabs: slide left-right to move to the next screen,
+ * or tap the bar. Built on the top-tab navigator (the only one with a pager)
+ * but drawn with our own bottom bar.
+ */
+const SwipeTabs = withLayoutContext<
+  MaterialTopTabNavigationOptions,
+  typeof Navigator,
+  TabNavigationState<ParamListBase>,
+  MaterialTopTabNavigationEventMap
+>(Navigator);
 
 export default function TabLayout() {
   return (
-    <Tabs
+    <SwipeTabs
+      tabBarPosition="bottom"
+      tabBar={(props) => <AppTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors.RASPBERRY_SIPS,
-        tabBarInactiveTintColor: "#9aa0ac",
-        headerShown: false,
-        // tabBarStyle: { height: 60, paddingBottom: 18, paddingTop: 6 },
-        // tabBarLabelStyle: { fontSize: 10.5 },
+        swipeEnabled: true,
+        animationEnabled: true,
+        // Every page stays mounted — with lazy pages the pager refuses to
+        // swipe back towards a screen that was never rendered.
+        lazy: false,
       }}
     >
-      <Tabs.Screen
-        name="Discover"
-        options={{
-          tabBarIcon: ({ color, size }) => <Octicons name="flame" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="Reels"
-        options={{
-          tabBarIcon: ({ color, size }) => <Feather name="film" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="Matches"
-        options={{
-          tabBarIcon: ({ color, size }) => <Entypo name="heart-outlined" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="Messages"
-        options={{
-          tabBarIcon: ({ color, size }) => <Feather name="message-circle" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="Profile"
-        options={{
-          tabBarIcon: ({ color, size }) => <AntDesign name="user" size={size} color={color} />,
-        }}
-      />
-    </Tabs>
+      {/* The swipe-card stack owns horizontal drags here, so paging is off. */}
+      <SwipeTabs.Screen name="Discover" options={{ swipeEnabled: false }} />
+      <SwipeTabs.Screen name="Reels" />
+      <SwipeTabs.Screen name="Matches" />
+      <SwipeTabs.Screen name="Messages" />
+      <SwipeTabs.Screen name="Profile" />
+    </SwipeTabs>
   );
 }

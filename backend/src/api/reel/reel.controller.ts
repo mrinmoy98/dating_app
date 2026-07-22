@@ -48,9 +48,9 @@ export class ReelController {
 
   @Post(':id/view')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Count a view' })
-  view(@Param('id') id: string) {
-    return this.reels.view(id);
+  @ApiOperation({ summary: 'Mark this reel as watched (counts once per user)' })
+  view(@CurrentUser() user: { sub: string }, @Param('id') id: string) {
+    return this.reels.view(user.sub, id);
   }
 
   @Delete(':id')

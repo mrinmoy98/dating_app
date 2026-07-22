@@ -23,6 +23,7 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { fetchMatches } from "../../store/slices/matchSlice";
 import MatchCard from "../components/MatchCard";
 import AppHeader from "../components/Shared/AppHeader";
+import PressableScale from "../components/Shared/PressableScale";
 import Typography from "../components/Shared/Typography";
 
 interface MatchItem {
@@ -254,16 +255,17 @@ export default function MatchesScreen() {
           const active = tab === t.key;
           const n = countFor(t.key);
           return (
-            <Pressable
+            <PressableScale
               key={t.key}
               style={[styles.chip, active && styles.chipActive]}
+              scaleTo={0.94}
               onPress={() => setTab(t.key)}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>
                 {t.label}
                 {n > 0 ? ` ${n}` : ""}
               </Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </ScrollView>

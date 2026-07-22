@@ -16,6 +16,7 @@ import {
 import { useRegistration } from "../../../context/RegistrationContext";
 import { api } from "../../../lib/api";
 import { getSocket } from "../../../lib/socket";
+import PressableScale from "./PressableScale";
 
 interface AppHeaderProps {
   /** Title shown in the middle. */
@@ -117,13 +118,13 @@ export default function AppHeader({
       {hideUpload ? (
         <View style={styles.btn} />
       ) : (
-        <Pressable style={styles.btn} onPress={pickReel} disabled={uploading} hitSlop={8}>
+        <PressableScale style={styles.btn} ripple={null} onPress={pickReel} disabled={uploading}>
           {uploading ? (
             <ActivityIndicator size="small" color={tint} />
           ) : (
             <Feather name="plus-square" size={25} color={tint} />
           )}
-        </Pressable>
+        </PressableScale>
       )}
 
       <Text style={[styles.title, { color: tint }]}>{title}</Text>
@@ -131,9 +132,9 @@ export default function AppHeader({
       {/* Right — optional extra action, then notifications */}
       <View style={styles.rightGroup}>
         {rightExtra}
-        <Pressable
+        <PressableScale
           style={styles.btn}
-          hitSlop={8}
+          ripple={null}
           onPress={() => {
             setUnread(0);
             router.push("/(profile)/Notifications" as any);
@@ -145,7 +146,7 @@ export default function AppHeader({
               <Text style={styles.badgeText}>{unread > 9 ? "9+" : unread}</Text>
             </View>
           )}
-        </Pressable>
+        </PressableScale>
       </View>
 
       {/* Caption sheet — shown after a video is picked */}

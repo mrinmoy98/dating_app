@@ -40,7 +40,14 @@
       "@react-native-community/datetimepicker",
       "expo-secure-store",
       "expo-location",
-      "expo-camera"
+      "expo-camera",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save reels to your gallery.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

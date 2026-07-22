@@ -144,7 +144,7 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!(await this.social.areFriends(from, body.to))) {
       client.emit('error_msg', { message: 'You can only call people who follow you back.' });
       return;
-    }
+    } 
     if (!this.online.has(body.to)) {
       client.emit('call_unavailable', { reason: 'User is offline' });
       return;

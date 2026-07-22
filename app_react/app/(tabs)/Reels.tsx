@@ -20,6 +20,8 @@ import { useRegistration } from "../../context/RegistrationContext";
 import { api, type Reel } from "../../lib/api";
 import { confirmAction } from "../../lib/confirm";
 import AppHeader from "../components/Shared/AppHeader";
+import PressableScale from "../components/Shared/PressableScale";
+import ReelShareSheet from "../components/Shared/ReelShareSheet";
 
 const { height, width } = Dimensions.get("window");
 
@@ -33,16 +35,17 @@ function ReelItem({
   muted,
   onToggleMute,
   onLike,
-  onDelete,
+  onMenu,
 }: {
   item: Reel;
   active: boolean;
   muted: boolean;
   onToggleMute: () => void;
   onLike: (r: Reel) => void;
-  onDelete: (r: Reel) => void;
+  onMenu: (r: Reel) => void;
 }) {
   const router = useRouter();
+  const videoRef = useRef<Video>(null);
   const [paused, setPaused] = useState(false);
   const name = [item.user.firstName, item.user.lastName].filter(Boolean).join(" ");
 
@@ -51,11 +54,26 @@ function ReelItem({
     if (!active) setPaused(false);
   }, [active]);
 
+  // Belt and braces: `shouldPlay` alone can leave audio running when the screen
+  // unmounts or the tab changes, so stop the player explicitly too.
+  useEffect(() => {
+    if (!active) videoRef.current?.stopAsync().catch(() => {});
+  }, [active]);
+
+  useEffect(() => {
+    const player = videoRef.current;
+    return () => {
+      player?.stopAsync().catch(() => {});
+      player?.unloadAsync().catch(() => {});
+    };
+  }, []);
+
   return (
     <View style={styles.reel}>
       {/* Tap anywhere on the video to pause / resume */}
       <Pressable style={StyleSheet.absoluteFill} onPress={() => setPaused((p) => !p)}>
         <Video
+          ref={videoRef}
           source={{ uri: item.video_url }}
           style={styles.media}
           resizeMode={ResizeMode.COVER}
@@ -75,13 +93,17 @@ function ReelItem({
       )}
 
       {/* Mute / unmute */}
-      <Pressable style={styles.muteBtn} onPress={onToggleMute} hitSlop={8}>
+      <PressableScale style={styles.muteBtn} ripple={null} onPress={onToggleMute}>
         <Ionicons name={muted ? "volume-mute" : "volume-high"} size={19} color="#fff" />
-      </Pressable>
+      </PressableScale>
 
       {/* Right action rail */}
       <View style={styles.rail}>
-        <Pressable style={styles.avatarWrap} onPress={() => router.push(`/user/${item.user.id}` as any)}>
+        <PressableScale
+          style={styles.avatarWrap}
+          ripple={null}
+          onPress={() => router.push(`/user/${item.user.id}` as any)}
+        >
           {item.user.photoUrl ? (
             <Image source={{ uri: item.user.photoUrl }} style={styles.railAvatar} />
           ) : (
@@ -91,31 +113,31 @@ function ReelItem({
               </Text>
             </View>
           )}
-        </Pressable>
+        </PressableScale>
 
-        <Pressable style={styles.railBtn} onPress={() => onLike(item)}>
+        <PressableScale
+          style={styles.railBtn}
+          scaleTo={0.82}
+          ripple={null}
+          onPress={() => onLike(item)}
+        >
           <Ionicons
             name={item.liked ? "heart" : "heart-outline"}
             size={32}
             color={item.liked ? Colors.primary : "#fff"}
           />
           <Text style={styles.railText}>{fmt(item.likes_count)}</Text>
-        </Pressable>
+        </PressableScale>
 
         <View style={styles.railBtn}>
           <Feather name="eye" size={27} color="#fff" />
           <Text style={styles.railText}>{fmt(item.views)}</Text>
         </View>
 
-        {item.user.is_me ? (
-          <Pressable style={styles.railBtn} onPress={() => onDelete(item)}>
-            <Feather name="trash-2" size={25} color="#fff" />
-          </Pressable>
-        ) : (
-          <Pressable style={styles.railBtn} onPress={() => router.push(`/user/${item.user.id}` as any)}>
-            <Feather name="more-vertical" size={26} color="#fff" />
-          </Pressable>
-        )}
+        {/* "…" → copy link, save to gallery, WhatsApp share / status */}
+        <PressableScale style={styles.railBtn} ripple={null} onPress={() => onMenu(item)}>
+          <Feather name="more-vertical" size={26} color="#fff" />
+        </PressableScale>
       </View>
 
       {/* Bottom info */}
@@ -152,10 +174,13 @@ export default function Reels() {
   const { authToken } = useRegistration();
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(false);
+  const [menuFor, setMenuFor] = useState<Reel | null>(null);
   // Playback (and its audio) stops as soon as you leave the Reels tab.
   const focused = useIsFocused();
+  const listRef = useRef<FlatList<Reel>>(null);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
   const seen = useRef<Set<string>>(new Set());
   const busyLikes = useRef<Set<string>>(new Set());
@@ -165,18 +190,29 @@ export default function Reels() {
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
   }, []);
 
-  const load = useCallback(() => {
-    if (!authToken) return;
-    setLoading(true);
-    api
-      .reelsFeed(authToken)
-      .then((r) => {
-        setReels(r || []);
-        seen.current.clear(); // a fresh feed may re-count views
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [authToken]);
+  const load = useCallback(
+    (pullToRefresh = false) => {
+      if (!authToken) return;
+      if (pullToRefresh) setRefreshing(true);
+      else setLoading(true);
+      api
+        .reelsFeed(authToken)
+        .then((r) => {
+          setReels(r || []);
+          if (pullToRefresh) {
+            // Jump back to the first reel of the new set, like Instagram.
+            setActiveIndex(0);
+            listRef.current?.scrollToOffset({ offset: 0, animated: false });
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setLoading(false);
+          setRefreshing(false);
+        });
+    },
+    [authToken],
+  );
 
   useEffect(() => {
     load();
@@ -187,8 +223,9 @@ export default function Reels() {
     if (first) setActiveIndex(first.index ?? 0);
   }).current;
 
-  // Count a view the first time each reel becomes the visible one,
-  // and bump the number on screen so the counter isn't stale.
+  // Tell the server each reel was watched, and bump the number on screen so the
+  // counter isn't stale. The server only counts a user's first watch, and uses
+  // the same record to keep already-seen reels out of the next feed.
   useEffect(() => {
     const current = reels[activeIndex];
     if (!current || !authToken || !focused || seen.current.has(current.id)) return;
@@ -247,16 +284,17 @@ export default function Reels() {
         <ActivityIndicator style={{ marginTop: height / 2.4 }} color="#fff" />
       ) : (
         <FlatList
+          ref={listRef}
           data={reels}
           keyExtractor={(r) => r.id}
           renderItem={({ item, index }) => (
             <ReelItem
               item={item}
-              active={index === activeIndex && focused}
+              active={index === activeIndex && focused && !menuFor}
               muted={muted}
               onToggleMute={() => setMuted((m) => !m)}
               onLike={like}
-              onDelete={remove}
+              onMenu={setMenuFor}
             />
           )}
           pagingEnabled
@@ -265,7 +303,16 @@ export default function Reels() {
           decelerationRate="fast"
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor="#fff" />}
+          refreshControl={
+            // Pull down from the top for a fresh set of suggested reels.
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor="#fff"
+              colors={["#fff"]}
+              progressBackgroundColor="#222"
+            />
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="videocam-outline" size={46} color="#666" />
@@ -275,6 +322,8 @@ export default function Reels() {
           }
         />
       )}
+
+      <ReelShareSheet reel={menuFor} onClose={() => setMenuFor(null)} onDelete={remove} />
     </View>
   );
 }

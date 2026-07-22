@@ -5,6 +5,7 @@ import { MatchSchema } from '../entity/match.entity';
 import { MessageSchema } from '../entity/message.entity';
 import { NotificationSchema } from '../entity/notification.entity';
 import { OtpSchema } from '../entity/otp.entity';
+import { ReelViewSchema } from '../entity/reel-view.entity';
 import { ReelSchema } from '../entity/reel.entity';
 import { SwipeSchema } from '../entity/swipe.entity';
 import { UserSchema } from '../entity/user.entity';
@@ -43,6 +44,7 @@ import { UploadController } from './upload/upload.controller';
       { name: 'Message', schema: MessageSchema },
       { name: 'Notification', schema: NotificationSchema },
       { name: 'Reel', schema: ReelSchema },
+      { name: 'ReelView', schema: ReelViewSchema },
     ]),
   ],
   controllers: [

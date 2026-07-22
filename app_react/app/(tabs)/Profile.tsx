@@ -29,6 +29,7 @@ import { setUser } from '../../store/slices/authSlice';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
 import AppHeader from '../components/Shared/AppHeader';
 import Button from '../components/Shared/Button';
+import PressableScale from '../components/Shared/PressableScale';
 import Typography from '../components/Shared/Typography';
 
 const GRID_GAP = 8;
@@ -59,11 +60,16 @@ function StatTile({
   onPress?: () => void;
 }) {
   return (
-    <Pressable style={styles.stat} onPress={onPress} disabled={!onPress}>
+    <PressableScale
+      style={styles.stat}
+      scaleTo={0.94}
+      onPress={onPress}
+      disabled={!onPress}
+    >
       <Feather name={icon} size={15} color={Colors.primary} />
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -371,22 +377,25 @@ export default function ProfileScreen() {
 
           {/* Actions */}
           <View style={styles.actionRow}>
-            <Pressable
+            <PressableScale
               style={styles.editBtn}
               onPress={() => router.push('/(profile)/EditProfile')}
             >
               <Feather name="edit-2" size={15} color="#fff" />
               <Text style={styles.editBtnText}>Edit profile</Text>
-            </Pressable>
-            <Pressable
+            </PressableScale>
+            <PressableScale
               style={styles.iconAction}
               onPress={() => router.push('/(profile)/Preferences')}
             >
               <Ionicons name="options-outline" size={19} color={Colors.primary} />
-            </Pressable>
-            <Pressable style={styles.iconAction} onPress={() => router.push('/(profile)/Likes' as any)}>
+            </PressableScale>
+            <PressableScale
+              style={styles.iconAction}
+              onPress={() => router.push('/(profile)/Likes' as any)}
+            >
               <Feather name="heart" size={18} color={Colors.primary} />
-            </Pressable>
+            </PressableScale>
           </View>
         </View>
 
@@ -399,16 +408,17 @@ export default function ProfileScreen() {
               { key: 'about', label: 'About', icon: 'info' },
             ] as const
           ).map((t) => (
-            <Pressable
+            <PressableScale
               key={t.key}
               style={[styles.segmentBtn, tab === t.key && styles.segmentBtnActive]}
+              scaleTo={0.95}
               onPress={() => setTab(t.key)}
             >
               <Feather name={t.icon} size={15} color={tab === t.key ? '#fff' : Colors.darkGray} />
               <Text style={[styles.segmentText, tab === t.key && styles.segmentTextActive]}>
                 {t.label}
               </Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
 
