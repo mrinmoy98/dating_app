@@ -11,11 +11,13 @@ import { UserSchema } from '../entity/user.entity';
 import { ApiAuthController } from './auth/auth.controller';
 import { ApiAuthService } from './auth/auth.service';
 import { ChatController } from './chat/chat.controller';
+import { ChatService } from './chat/chat.service';
 import { MatchController } from './match/match.controller';
 import { MatchService } from './match/match.service';
 import { NotificationController } from './notification/notification.controller';
 import { NotificationService } from './notification/notification.service';
 import { UserSlugService } from '../common/services/user-slug.service';
+import { RealtimeService } from '../common/services/realtime.service';
 import { ReelController } from './reel/reel.controller';
 import { ReelService } from './reel/reel.service';
 import { SocialController } from './social/social.controller';
@@ -61,8 +63,10 @@ import { UploadController } from './upload/upload.controller';
     NotificationService,
     ReelService,
     UserSlugService,
+    RealtimeService,
+    ChatService,
   ],
   // CallModule (socket gateway) needs friendship checks + live notifications.
-  exports: [SocialService, NotificationService, MongooseModule],
+  exports: [SocialService, NotificationService, ChatService, RealtimeService, MongooseModule],
 })
 export class ApiModule {}

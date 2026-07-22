@@ -29,4 +29,12 @@ export const ENDPOINTS = {
     photos: "/api/upload/photos",
     video: "/api/upload/video",
   },
+  chat: {
+    conversations: "/api/chat/conversations",
+    history: (id: string) => `/api/chat/with/${id}`,
+    presence: (id: string) => `/api/chat/presence/${id}`,
+    send: "/api/chat/send",
+    read: (id: string) => `/api/chat/read/${id}`,
+    message: (id: string) => `/api/chat/message/${id}`,
+  },
 } as const;

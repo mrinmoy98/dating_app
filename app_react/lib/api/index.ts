@@ -17,7 +17,7 @@ export { discoverApi } from "./discover";
 export { matchApi } from "./match";
 export { socialApi } from "./social";
 export { reelApi } from "./reel";
-export { chatApi } from "./chat";
+export { chatApi, type ChatUpload } from "./chat";
 export { notificationApi } from "./notification";
 export { cmsApi } from "./cms";
 export { uploadApi } from "./upload";

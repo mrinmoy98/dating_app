@@ -17,7 +17,9 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": false,
-      "package": "com.goutam097.expo_f"
+      "package": "com.goutam097.expo_f",
+      "permissions": ["RECORD_AUDIO"],
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
@@ -40,7 +42,19 @@
       "@react-native-community/datetimepicker",
       "expo-secure-store",
       "expo-location",
-      "expo-camera"
+      "expo-camera",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to record voice messages."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to share photos and videos in chat."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

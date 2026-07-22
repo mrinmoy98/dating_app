@@ -240,18 +240,46 @@ export interface AppNotification {
 }
 
 // ---------------- Chat ----------------
+export type ChatMessageType = "text" | "image" | "video" | "audio" | "file";
+
+export interface ChatAttachment {
+  url: string;
+  name: string;
+  mime: string;
+  size: number;
+  /** Seconds — voice notes and videos. */
+  duration: number;
+  width: number;
+  height: number;
+}
+
 export interface ChatMessage {
   id: string;
   from: string;
   to: string;
   text: string;
+  type: ChatMessageType;
+  attachment: ChatAttachment | null;
+  /** Single tick = false, double tick = true. `read` turns the double tick blue. */
+  delivered?: boolean;
   read?: boolean;
   created_at: string;
+  /** Client-only: an optimistic bubble that hasn't reached the server yet. */
+  pending?: boolean;
+  failed?: boolean;
 }
 
 export interface ChatConversation {
   user: ConnectionUser;
-  lastMessage: { text: string; from: string; created_at: string } | null;
+  online?: boolean;
+  lastMessage: {
+    text: string;
+    type?: ChatMessageType;
+    from: string;
+    delivered?: boolean;
+    read?: boolean;
+    created_at: string;
+  } | null;
   unread: number;
 }
 
